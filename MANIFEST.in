@@ -1,0 +1,9 @@
+# Format described here:
+# https://docs.python.org/2/distutils/sourcedist.html#the-manifest-in-template
+
+# Include text files
+include LICENSE.txt
+include README.rst
+
+# Include more data files
+# recursive-include docs *

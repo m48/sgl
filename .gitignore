@@ -1,0 +1,4 @@
+/sgl.egg-info
+/docs/build
+*.py~
+*.pyc
