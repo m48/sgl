@@ -6,6 +6,10 @@
 Welcome to sgl's documentation!
 ===============================
 
+Welcome to the documentation for SGL! Soon, this will actually contain, like, useful things.
+
+Until then, please look over the source code to figure out what's going on. I think I've made it logical enough to understand. There's going to be a lot of this going to change, though. Just warning you.
+
 Contents:
 
 .. toctree::
