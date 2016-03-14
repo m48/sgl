@@ -8,9 +8,9 @@ backend = None
 
 def init(width, height, scale=1, back_end="pygame"):
     if back_end == "pygame":
-        import sgl_pygame
+        import PygameBackend
         global backend
-        backend = sgl_pygame.Backend()
+        backend = PygameBackend.Backend()
     else:
         raise UnsupportedBackendError()
 

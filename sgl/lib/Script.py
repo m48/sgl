@@ -1,4 +1,4 @@
-import script_parser as script
+import ScriptParser as script
 import inspect
 
 def is_string(thing):
