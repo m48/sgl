@@ -1,11 +1,26 @@
 import pygame
 import os
-
-class BackendError(Exception):
-    def __init__(self, message):
-        self.message = message
+from Constants import *
+from Errors import *
+import Util
 
 class Backend:
+    class Meta:
+        Abilities = [abilities.software, 
+                     abilities.numpy, 
+                     abilities.save_buffer]
+
+        if pygame.image.get_extended():
+            ImageTypes = [".png", ".bmp", ".jpg", ".jpeg", ".tga"]
+        else:
+            ImageTypes = [".bmp"]
+
+        SoundTypes = [".ogg", ".wav"]
+        MusicTypes = [".xm", ".it", ".s3m", ".mod", 
+                       ".mid", ".midi", ".mp3", 
+                       ".ogg", ".wav"]
+        FontTypes = [".ttf"]
+
     screen_width = 0
     screen_height = 0
     scale = 0
@@ -22,6 +37,8 @@ class Backend:
     keys_down = []
     keys_just_down = []
     keys_just_up = []
+
+    letters_pressed = ""
 
     mouse_down = []
     mouse_just_down = []
@@ -45,18 +62,6 @@ class Backend:
         buffer = None
 
     gfx_stack = []
-
-    def resolve_color(self, color):
-        if color == None: return None
-
-        if len(color) == 1:
-            return (color[0], color[0], color[0])
-        elif len(color) == 2:
-            return (color[0], color[0], color[0], color[1])
-        elif len(color) == 3:
-            return (color[0], color[1], color[2])
-        elif len(color) == 4:
-            return (color[0], color[1], color[2], color[3])
 
     ## SYSTEM
     def init(self, width, height, scale=1):
@@ -82,8 +87,16 @@ class Backend:
 
         self.clock = pygame.time.Clock()
 
+        self.inputs = [input.keyboard, input.mouse]
+
         self.running = True
 
+    def run(self, update, draw):
+        while self.is_running():
+            update()
+            draw()
+            self.frame()        
+ 
     def frame(self):
         if self.scale == 1:
             self.window.blit(self.display, (0,0))
@@ -100,6 +113,8 @@ class Backend:
         self.keys_just_down = []
         self.keys_just_up = []
 
+        self.letters_pressed = ""
+
         self.mouse_just_down = []
         self.mouse_just_up = []
 
@@ -111,6 +126,8 @@ class Backend:
                 self.end()
 
             if event.type == pygame.KEYDOWN:
+                if event.key >= 32 and event.key <= 255:
+                    self.letters_pressed += event.unicode
                 self.keys_just_down.append(event.key)
                 self.keys_down.append(event.key)
 
@@ -139,11 +156,19 @@ class Backend:
 
         self.dt = self.clock.tick(self.fps) / 1000.0
 
-    def use_joystick(self):
-        self.joystick = pygame.joystick.Joystick(0)
+    def add_input(self, type):
+        if type not in self.inputs:
+            if type == input.joystick:
+                self.joystick = pygame.joystick.Joystick(0)
+            elif type in (input.keyboard, input.mouse):
+                pass
+            else:
+                raise UnsupportedInputError(type)
 
-    def use_mouse(self):
-        pass
+            self.inputs.append(type)
+
+    def has_input(self, type):
+        return type in self.inputs
 
     def show_mouse(self):
         pygame.mouse.set_visible(True)
@@ -151,11 +176,23 @@ class Backend:
     def hide_mouse(self):
         pygame.mouse.set_visible(False)
 
-    def set_fps(self, fps):
+    def set_fps_limit(self, fps):
         self.fps = fps
+
+    def get_fps_limit(self, fps):
+        return self.fps
+
+    def get_fps(self):
+        return self.clock.get_fps()
+
+    def get_scale(self):
+        return self.scale
 
     def set_title(self, title):
         pygame.display.set_caption(title)
+
+    def get_title(self):
+        return pygame.display.get_caption()[0]
 
     def get_actual_screen_width(self):
         return self.screen_width * self.scale
@@ -212,12 +249,12 @@ class Backend:
 
     ## GRAPHICS
     def set_transparent_color(self, *color):
-        self.gfx_state.transparent_color = resolve_color(color)
+        self.gfx_state.transparent_color = Util.resolve_color(color)
 
-    def load_image(self, file, transparent=True):
+    def load_image(self, file, use_transparent_color=True):
         image = pygame.image.load(file)
         image = image.convert()
-        if transparent: 
+        if use_transparent_color: 
             image.set_colorkey(self.gfx_state.transparent_color)
         return image
 
@@ -237,7 +274,7 @@ class Backend:
 
         thing_to_blit = new_thing if new_thing else thing
         
-        # AFF setting alpha makes this true. use diff test
+        # ARGH, setting alpha makes this true. Find different test
         if pygame.SRCALPHA & thing_to_blit.get_flags():
             thing_to_blit.set_alpha(alpha)
             if alpha != 255:
@@ -266,22 +303,32 @@ class Backend:
 
     ## DRAWING
     def set_fill(self, *color):
-        self.gfx_state.fill_color = self.resolve_color(color)
+        self.gfx_state.fill_color = Util.resolve_color(color)
+
+    def get_fill(self):
+        return self.gfx_state.fill_color
 
     def set_stroke(self, *color):
-        self.gfx_state.stroke_color = self.resolve_color(color)
+        self.gfx_state.stroke_color = Util.resolve_color(color)
+
+    def get_stroke(self):
+        return self.gfx_state.stroke_color
 
     def set_stroke_weight(self, weight):
         self.gfx_state.stroke_weight = weight
 
+    def get_stroke_weight(self):
+        return self.gfx_state.stroke_weight
+
     def no_stroke(self):
         self.gfx_state.stroke_weight = 0
+        self.gfx_state.stroke_color = None
 
     def no_fill(self):
         self.gfx_state.fill_color = None
 
     def clear(self, *color):
-        self.gfx_state.buffer.fill(self.resolve_color(color))
+        self.gfx_state.buffer.fill(Util.resolve_color(color))
 
     def draw_line(self, x1, y1, x2, y2):
         if self.gfx_state.stroke_color != None and self.gfx_state.stroke_weight > 0:
@@ -338,6 +385,9 @@ class Backend:
     def load_font(self, font_name, size):
         return pygame.font.Font(font_name, size)
 
+    def load_system_font(self, font_name, size):
+        return pygame.font.SysFont(font_name, size)
+
     def set_font(self, font):
         self.gfx_state.font = font
 
@@ -363,7 +413,7 @@ class Backend:
         self.gfx_stack.append(self.gfx_state.__dict__.copy())
 
     def make_surface(self, width, height, *color):
-        color = self.resolve_color(color)
+        color = Util.resolve_color(color)
 
         if color == None:
             surface = pygame.Surface((width, height), pygame.SRCALPHA, 32)
@@ -388,10 +438,10 @@ class Backend:
     def reset_buffer(self):
         self.gfx_state.buffer = self.display
 
-    def get_buffer_width(self):
+    def get_width(self):
         return self.gfx_state.buffer.get_width()
 
-    def get_buffer_height(self):
+    def get_height(self):
         return self.gfx_state.buffer.get_height()
 
     ## INPUT
@@ -406,6 +456,9 @@ class Backend:
 
     def get_keys_pressed(self):
         return self.keys_down
+
+    def get_letters_pressed(self):
+        return self.letters_pressed
 
     def get_mouse_x(self):
         return pygame.mouse.get_pos()[0] / self.scale
