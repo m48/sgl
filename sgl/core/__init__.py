@@ -71,6 +71,29 @@ def run(update=None, draw=None):
 
     Backend.run(update, draw)
 
+@needs_ability(abilities.numpy)
+def make_movie(file="", update=None, draw=None, duration=0, fps=24, width=0, height=0, realtime=False, display=True, **extra):
+    import moviepy.editor
+    import numpy as np
+
+    set_fps_limit(fps)
+    Backend.enter_movie_mode(realtime)
+
+    def get_frame(time):
+        update()
+        draw()
+        if display: frame()
+
+        return to_numpy().swapaxes(0,1)
+
+    clip = moviepy.editor.VideoClip(make_frame=get_frame, duration=duration)
+
+    extension = os.path.splitext(file)[1].lower()
+    if extension == ".gif":
+        clip.write_gif(file, fps=fps, **extra)
+    else:
+        clip.write_videofile(file, fps=fps, **extra)        
+
 def frame():
     Backend.frame()
 
@@ -181,15 +204,23 @@ def load_alpha_image(file):
 def blitf(thing, x, y):
     Backend.blitf(thing, x, y)
 
-def blit(thing, x, y, alpha=255, flip_v=False, flip_h=False):
-    Backend.blit(thing, x, y, alpha, flip_v, flip_h)
-
-    # ( angle=0, width=0, height=0, scale=1, 
-    #   src_x=0, src_y=0, src_width=0, src_height=0,
-    #   a_x=0, a_y=0)
-
+def blit(thing, x, y, alpha=255, flip_v=False, flip_h=False, 
+         angle=0, width=None, height=None, scale=1, a_x=0, a_y=0, 
+         src_x=0, src_y=0, src_width=None, src_height=None, 
+         blend_mode=0, pretty=False):    
+    Backend.blit(thing, x, y, alpha, flip_v, flip_h, 
+                 angle=0, width=None, height=None, scale=1, 
+                 a_x=0, a_y=0, 
+                 src_x=0, src_y=0, src_width=None, src_height=None, 
+                 blend_mode=0, pretty=False)
 
 ## DRAWING
+def set_smooth(smooth):
+    Backend.set_smooth(smooth)
+
+def get_smooth():
+    return Backend.get_smooth()
+
 def set_fill(*color):
     Backend.set_fill(*color)
 
@@ -230,6 +261,12 @@ def draw_circle(x, y, radius, from_center=True):
     Backend.draw_circle(x, y, radius, from_center)
     
 ## TEXT
+def set_font_smooth(smooth):
+    Backend.set_font_smooth(smooth)
+
+def get_font_smooth():
+    return Backend.get_font_smooth()
+
 def load_font(file, size):
     if not os.path.exists(file):
         raise FileNotFoundError(file)
@@ -279,11 +316,25 @@ def get_width():
 def get_height():
     return Backend.get_height()
 
-# ADD SAVE SURFACE, TO FROM NUMPY
+@needs_ability(abilities.save_buffer)
+def save_image(file):
+    extension = os.path.splitext(file)[1].lower()
+    if extension not in Backend.Meta.ImageSaveTypes:
+        raise UnsupportedFormatError(file, extension)
+
+    return Backend.save_image(file)
+
+@needs_ability(abilities.numpy)
+def to_numpy():
+    return Backend.to_numpy()
+
+@needs_ability(abilities.numpy)
+def from_numpy(array):
+    return Backend.from_numpy(array)
 
 ## FAKE INPUT
 def add_fake_input(type):
-    """ Adds a fake input. There must not be an equivalent real input  defined. """
+    """ Adds a fake input. There must not be an equivalent real input defined. """
 
     Backend.add_fake_input(type)
 

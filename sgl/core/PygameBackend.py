@@ -224,12 +224,18 @@ class Backend:
 
     joystick = None
 
+    movie_mode = False
+    movie_realtime = False
+
     class gfx_state:
         transparent_color = (255,0,255)
 
         fill_color = (255,255,255)
         stroke_color = (100,100,100)
         stroke_weight = 1
+
+        smooth = False
+        font_smooth = True
 
         font = None
 
@@ -271,6 +277,10 @@ class Backend:
             update()
             draw()
             self.frame()        
+
+    def enter_movie_mode(self, realtime):
+        self.movie_mode = True
+        self.movie_realtime = realtime
  
     def frame(self):
         if self.scale == 1:
@@ -330,6 +340,8 @@ class Backend:
 
                 if event.type == pygame.JOYBUTTONUP:
                     self.got_joy_up(event.button)
+
+        if self.movie_mode == True and self.movie_realtime == False: return
 
         self.dt = self.clock.tick(self.fps) / 1000.0
 
@@ -399,7 +411,10 @@ class Backend:
         return self.screen_height * self.scale
 
     def get_dt(self):
-        return self.dt
+        if self.fps == 0:
+            return self.dt
+        else:
+            return 1./self.fps
 
     def is_running(self):
         return self.running
@@ -446,6 +461,12 @@ class Backend:
         pygame.mixer.music.get_busy() # returns true for pausing
 
     ## GRAPHICS
+    def set_smooth(self, smooth):
+        self.gfx_state.smooth = smooth
+
+    def get_smooth(self):
+        return self.gfx_state.smooth
+
     def set_transparent_color(self, *color):
         self.gfx_state.transparent_color = Util.resolve_color(color)
 
@@ -464,7 +485,11 @@ class Backend:
     def blitf(self, thing, x, y):
         self.gfx_state.buffer.blit(thing, (x, y))
 
-    def blit(self, thing, x, y, alpha=255, flip_v=False, flip_h=False):
+    def blit(self, thing, x, y, alpha=255, flip_v=False, flip_h=False, 
+             angle=0, width=None, height=None, scale=1, a_x=0, a_y=0, 
+             src_x=0, src_y=0, src_width=None, src_height=None, 
+             blend_mode=0, pretty=False):
+
         new_thing = None
 
         if flip_h or flip_v:
@@ -494,11 +519,7 @@ class Backend:
             thing_to_blit.set_alpha(alpha)
 
             self.gfx_state.buffer.blit(thing_to_blit, (x, y))
-
-         # ( angle=0, width=0, height=0, scale=1, 
-         #   src_x=0, src_y=0, src_width=0, src_height=0,
-         #   a_x=0, a_y=0)
-
+         
     ## DRAWING
     def set_fill(self, *color):
         self.gfx_state.fill_color = Util.resolve_color(color)
@@ -580,6 +601,12 @@ class Backend:
         self.draw_ellipse(x, y, radius, radius, from_center)
 
     ## TEXT
+    def set_font_smooth(self, smooth):
+        self.gfx_state.font_smooth = smooth
+
+    def get_font_smooth(self):
+        return self.gfx_state.font_smooth
+
     def load_font(self, font_name, size):
         return pygame.font.Font(font_name, size)
 
@@ -590,7 +617,11 @@ class Backend:
         self.gfx_state.font = font
 
     def draw_text(self, text, x, y):
-        surface = self.gfx_state.font.render(text, 1, self.gfx_state.fill_color)
+        surface = self.gfx_state.font.render(
+            text, 
+            self.gfx_state.font_smooth, 
+            self.gfx_state.fill_color
+        )
         self.blitf(surface, x, y)
 
     def get_text_width(self, text):
@@ -641,6 +672,15 @@ class Backend:
 
     def get_height(self):
         return self.gfx_state.buffer.get_height()
+
+    def save_image(self, file):
+        pygame.image.save(self.gfx_state.buffer, file)
+
+    def to_numpy(self):
+        return pygame.surfarray.array3d(self.gfx_state.buffer)
+
+    def from_numpy(self, array):
+        return pygame.surfarray.make_surface(array)
 
     ## INPUT
     def got_key_down(self, key, raw_event=None):
