@@ -1,5 +1,6 @@
 import contextlib
 import os
+import sys
 from functools import wraps
 from Constants import *
 from Errors import *
@@ -10,6 +11,16 @@ def needs_input(type):
         def wrapper(*args, **kwargs):
             if not Backend.has_input(type): 
                 raise UninitializedInputError(type)
+            return function(*args, **kwargs)
+        return wrapper
+    return decorator
+
+def needs_fake_input(type):
+    def decorator(function):
+        @wraps(function)
+        def wrapper(*args, **kwargs):
+            if not Backend.has_fake_input(type): 
+                raise FakeInputError(type)
             return function(*args, **kwargs)
         return wrapper
     return decorator
@@ -32,8 +43,25 @@ def init(width, height, scale=1, backend="pygame"):
         import PygameBackend
         global Backend
         Backend = PygameBackend.Backend()
+        
     else:
         raise UnsupportedBackendError()
+
+    # Sort of hacky, but the only way I could figure out how to get
+    # this to work. If you try doing:
+    # 
+    #     global key
+    #     key = Backend.Meta.KeyCodes
+    #     
+    # ...and then trying to access "sgl.key.up" or something, it will
+    # complain that "sgl.key" has never been defined. I guess this is
+    # because the "from core import *" in the parent directory's
+    # __init__.py only gets the variable bindings *once,* and never
+    # updates them. So we have to manually update it.
+    #
+    # Only alternative seems to be to change the module structure,
+    # which I'm considering.
+    sys.modules["sgl"].key = Backend.Meta.KeyCodes
 
     Backend.init(width, height, scale)
 
@@ -57,12 +85,6 @@ def get_fps():
 
 def get_scale():
     return Backend.get_scale()
-
-def add_input(type):
-    Backend.add_input(type)
-
-def has_input(type):
-    return Backend.has_input(type)
 
 def has(ability):
     return ability in Backend.Meta.Abilities
@@ -259,7 +281,61 @@ def get_height():
 
 # ADD SAVE SURFACE, TO FROM NUMPY
 
+## FAKE INPUT
+def add_fake_input(type):
+    """ Adds a fake input. There must not be an equivalent real input  defined. """
+
+    Backend.add_fake_input(type)
+
+@needs_fake_input(input.keyboard)
+def got_key_down(key):
+    Backend.got_key_down(key)
+
+@needs_fake_input(input.keyboard)
+def got_key_up(key):
+    Backend.got_key_up(key)
+
+@needs_fake_input(input.mouse)
+def got_mouse_move(x, y):
+    Backend.got_mouse_move(x, y)
+
+@needs_fake_input(input.mouse)
+def got_mouse_down(button):
+    Backend.got_mouse_down(button)
+
+@needs_fake_input(input.mouse)
+def got_mouse_up(button):
+    Backend.got_mouse_up(button)
+
 ## INPUT
+def add_input(type):
+    """ Initializes support for a specified type of input. """
+
+    if type not in Backend.Meta.InputTypes:
+        raise UnsupportedInputError(type)
+
+    Backend.add_input(type)
+
+def supports_input(type):
+    """Returns whether the backend supports the specified input
+type. Might be integrated into `has` later."""
+
+    return type in Backend.Meta.InputTypes
+
+
+def remove_input(type):
+    """Removes support for a specified type of input. It does not matter
+whether this input is real or fake--it will remove it regardless."""
+
+    Backend.remove_input(type)
+
+def has_input(type):
+    """Returns whether a specified input type is handled or
+not. Intentionally does not distinguish between real and fake
+inputs."""
+
+    return Backend.has_input(type)
+
 @needs_input(input.keyboard)
 def on_key_down(key):
     return Backend.on_key_down(key)

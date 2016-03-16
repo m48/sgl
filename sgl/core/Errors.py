@@ -18,6 +18,21 @@ class UninitializedInputError(sglException):
     def __str__(self):
         return "{} input support is currently not turned on".format(input.convert(self.item))
 
+class FakeInputError(sglException): 
+    def __init__(self, item):
+        self.item = item
+
+    def __str__(self):
+        return "Cannot use fake input here--real {} input support is turned on".format(input.convert(self.item))
+
+class InputHardwareError(sglException): 
+    def __init__(self, item):
+        self.item = item
+
+    def __str__(self):
+        return "This backend supports {} input, but currently no devices of that type are connected".format(input.convert(self.item))
+
+
 class UnsupportedActionError(sglException): 
     def __init__(self, item):
         self.item = item

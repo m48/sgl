@@ -10,16 +10,185 @@ class Backend:
                      abilities.numpy, 
                      abilities.save_buffer]
 
+        InputTypes = [input.keyboard,
+                      input.mouse,
+                      input.joystick]
+
         if pygame.image.get_extended():
-            ImageTypes = [".png", ".bmp", ".jpg", ".jpeg", ".tga"]
+            ImageTypes = [".jpg", ".jpeg", ".png", ".gif", ".bmp",
+                          ".pcx", ".tga", ".tif", ".tiff", ".lbm",
+                          ".pbm", ".pgm", ".ppm", ".xpm"]
         else:
             ImageTypes = [".bmp"]
 
+        ImageSaveTypes = [".bmp", ".tga", ".png", ".jpeg"]
         SoundTypes = [".ogg", ".wav"]
         MusicTypes = [".xm", ".it", ".s3m", ".mod", 
                        ".mid", ".midi", ".mp3", 
                        ".ogg", ".wav"]
         FontTypes = [".ttf"]
+
+        class KeyCodes:
+            # Standard control keys
+            backspace = pygame.K_BACKSPACE
+            tab = pygame.K_TAB
+            clear = pygame.K_CLEAR
+            enter = pygame.K_RETURN
+            pause = pygame.K_PAUSE
+            escape = pygame.K_ESCAPE
+
+            # Symbols
+            space = pygame.K_SPACE
+            exclamation_point = pygame.K_EXCLAIM
+            quote = pygame.K_QUOTEDBL
+            number_sign = pygame.K_HASH
+            dollar_sign = pygame.K_DOLLAR
+            ampersand = pygame.K_AMPERSAND
+            apostrophe = pygame.K_QUOTE
+            left_paren = pygame.K_LEFTPAREN
+            right_paren = pygame.K_RIGHTPAREN
+            asterick = pygame.K_ASTERISK
+            plus = pygame.K_PLUS
+            comma = pygame.K_COMMA
+            minus = pygame.K_MINUS
+            period = pygame.K_PERIOD
+            slash = pygame.K_SLASH
+
+            # Numbers
+            num_0 = pygame.K_0
+            num_1 = pygame.K_1
+            num_2 = pygame.K_2
+            num_3 = pygame.K_3
+            num_4 = pygame.K_4
+            num_5 = pygame.K_5
+            num_6 = pygame.K_6
+            num_7 = pygame.K_7
+            num_8 = pygame.K_8
+            num_9 = pygame.K_9
+
+            # More symbols
+            colon = pygame.K_COLON
+            semicolon = pygame.K_SEMICOLON
+            less_than = pygame.K_LESS
+            equal_sign = pygame.K_EQUALS         
+            greater_than = pygame.K_GREATER        
+            question_mark = pygame.K_QUESTION       
+            at_sign = pygame.K_AT             
+            left_square = pygame.K_LEFTBRACKET    
+            backslash = pygame.K_BACKSLASH      
+            right_square = pygame.K_RIGHTBRACKET   
+            caret = pygame.K_CARET          
+            underscore = pygame.K_UNDERSCORE     
+            backtick = pygame.K_BACKQUOTE      
+
+            # Letters
+            a = pygame.K_a              
+            b = pygame.K_b              
+            c = pygame.K_c              
+            d = pygame.K_d              
+            e = pygame.K_e              
+            f = pygame.K_f              
+            g = pygame.K_g              
+            h = pygame.K_h              
+            i = pygame.K_i              
+            j = pygame.K_j              
+            k = pygame.K_k              
+            l = pygame.K_l              
+            m = pygame.K_m              
+            n = pygame.K_n              
+            o = pygame.K_o              
+            p = pygame.K_p              
+            q = pygame.K_q              
+            r = pygame.K_r              
+            s = pygame.K_s              
+            t = pygame.K_t              
+            u = pygame.K_u              
+            v = pygame.K_v              
+            w = pygame.K_w              
+            x = pygame.K_x              
+            y = pygame.K_y              
+            z = pygame.K_z              
+
+            # The delete key
+            delete = pygame.K_DELETE         
+
+            # Numpad
+            numpad_0 = pygame.K_KP0            
+            numpad_1 = pygame.K_KP1                
+            numpad_2 = pygame.K_KP2                
+            numpad_3 = pygame.K_KP3                
+            numpad_4 = pygame.K_KP4                
+            numpad_5 = pygame.K_KP5                
+            numpad_6 = pygame.K_KP6                
+            numpad_7 = pygame.K_KP7                
+            numpad_8 = pygame.K_KP8                
+            numpad_9 = pygame.K_KP9         
+            numpad_period = pygame.K_KP_PERIOD   
+            numpad_divide = pygame.K_KP_DIVIDE   
+            numpad_multiply = pygame.K_KP_MULTIPLY 
+            numpad_minus = pygame.K_KP_MINUS    
+            numpad_plus = pygame.K_KP_PLUS     
+            numpad_enter = pygame.K_KP_ENTER    
+            numpad_equal_sign = pygame.K_KP_EQUALS   
+
+            # Arrow keys
+            up = pygame.K_UP          
+            down = pygame.K_DOWN               
+            right = pygame.K_RIGHT              
+            left = pygame.K_LEFT               
+
+            # Stuff above arrow keys
+            insert = pygame.K_INSERT             
+            home = pygame.K_HOME               
+            end = pygame.K_END                
+            page_up = pygame.K_PAGEUP             
+            page_down = pygame.K_PAGEDOWN           
+
+            # Function keys
+            f1 = pygame.K_F1                 
+            f2 = pygame.K_F2                 
+            f3 = pygame.K_F3                 
+            f4 = pygame.K_F4                 
+            f5 = pygame.K_F5                 
+            f6 = pygame.K_F6                 
+            f7 = pygame.K_F7                 
+            f8 = pygame.K_F8                 
+            f9 = pygame.K_F9                 
+            f10 = pygame.K_F10                
+            f11 = pygame.K_F11                
+            f12 = pygame.K_F12                
+            f13 = pygame.K_F13                
+            f14 = pygame.K_F14                
+            f15 = pygame.K_F15                
+
+            # The locks
+            num_lock = pygame.K_NUMLOCK            
+            caps_lock = pygame.K_CAPSLOCK           
+            scroll_lock = pygame.K_SCROLLOCK          
+
+            # Normal modifier keys
+            right_shift = pygame.K_RSHIFT             
+            left_shift = pygame.K_LSHIFT             
+            right_control = pygame.K_RCTRL              
+            left_control = pygame.K_LCTRL              
+            right_alt = pygame.K_RALT               
+            left_alt = pygame.K_LALT               
+
+            # Weird modifier keys
+            right_meta = pygame.K_RMETA              
+            left_meta = pygame.K_LMETA              
+            right_super = pygame.K_LSUPER             
+            less_super = pygame.K_RSUPER             
+
+            # Please don't ever use these in your game
+            mode_shift = pygame.K_MODE               
+            help = pygame.K_HELP               
+            print_screen = pygame.K_PRINT              
+            system_request = pygame.K_SYSREQ             
+            system_break = pygame.K_BREAK
+            menu = pygame.K_MENU               
+            power = pygame.K_POWER              
+            euro = pygame.K_EURO               
 
     screen_width = 0
     screen_height = 0
@@ -44,9 +213,14 @@ class Backend:
     mouse_just_down = []
     mouse_just_up = []
 
+    mouse_x = 0
+    mouse_y = 0
+
     joy_down = []
     joy_just_down = []
     joy_just_up = []
+
+    joy_axes = {}
 
     joystick = None
 
@@ -87,7 +261,8 @@ class Backend:
 
         self.clock = pygame.time.Clock()
 
-        self.inputs = [input.keyboard, input.mouse]
+        self.real_inputs = [input.keyboard, input.mouse]
+        self.fake_inputs = []
 
         self.running = True
 
@@ -125,56 +300,79 @@ class Backend:
             if event.type == pygame.QUIT:
                 self.end()
 
-            if event.type == pygame.KEYDOWN:
-                if event.key >= 32 and event.key <= 255:
-                    self.letters_pressed += event.unicode
-                self.keys_just_down.append(event.key)
-                self.keys_down.append(event.key)
+            if self.has_real_input(input.keyboard):
+                if event.type == pygame.KEYDOWN:
+                    self.got_key_down(event.key, event)
 
-            if event.type == pygame.KEYUP:
-                self.keys_just_up.append(event.key)
-                if event.key in self.keys_down:
-                    self.keys_down.remove(event.key)
+                if event.type == pygame.KEYUP:
+                    self.got_key_up(event.key)
 
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                self.mouse_just_down.append(event.button)
-                self.mouse_down.append(event.button)
+            if self.has_real_input(input.mouse):
+                if event.type == pygame.MOUSEMOTION:
+                    self.got_mouse_move(event.pos[0]/self.scale, event.pos[1]/self.scale)
 
-            if event.type == pygame.MOUSEBUTTONUP:
-                self.mouse_just_up.append(event.button)
-                if event.button in self.mouse_down:
-                    self.mouse_down.remove(event.button)
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    self.got_mouse_down(event.button)
 
-            if event.type == pygame.JOYBUTTONDOWN:
-                self.joy_just_down.append(event.button)
-                self.joy_down.append(event.button)
+                if event.type == pygame.MOUSEBUTTONUP:
+                    self.got_mouse_up(event.button)
 
-            if event.type == pygame.JOYBUTTONUP:
-                self.joy_just_up.append(event.button)
-                if event.button in self.joy_down:
-                    self.joy_down.remove(event.button)
+            if self.has_real_input(input.joystick):
+                if event.type == pygame.JOYAXISMOTION:
+                    self.got_joy_axis_move(event.axis, event.value)
+
+                if event.type == pygame.JOYHATMOTION:
+                    pass
+                    # todo: implement hat/dpad as button=sgl.joy.down or something
+                    
+                if event.type == pygame.JOYBUTTONDOWN:
+                    self.got_joy_down(event.button)
+
+                if event.type == pygame.JOYBUTTONUP:
+                    self.got_joy_up(event.button)
 
         self.dt = self.clock.tick(self.fps) / 1000.0
 
     def add_input(self, type):
-        if type not in self.inputs:
+        if type not in self.real_inputs:
             if type == input.joystick:
+                pygame.joystick.init()
+                if pygame.joystick.get_count() == 0:
+                    raise InputHardwareError(type)
                 self.joystick = pygame.joystick.Joystick(0)
+
             elif type in (input.keyboard, input.mouse):
                 pass
-            else:
-                raise UnsupportedInputError(type)
 
-            self.inputs.append(type)
+            self.real_inputs.append(type)
+
+            if type in self.fake_inputs: 
+                del self.fake_inputs[self.fake_inputs.index(type)]
+
+        else:
+            pass
+
+    def add_fake_input(self, type):
+        if type not in self.real_inputs:
+            self.fake_inputs.append(type)
+        else:
+            raise FakeInputError(type)
+
+    def remove_input(self, type):
+        if type in self.real_inputs: 
+            del self.real_inputs[self.real_inputs.index(type)]
+        if type in self.fake_inputs: 
+            del self.fake_inputs[self.fake_inputs.index(type)]
 
     def has_input(self, type):
-        return type in self.inputs
+        return (type in self.real_inputs 
+                or type in self.fake_inputs)
 
-    def show_mouse(self):
-        pygame.mouse.set_visible(True)
+    def has_real_input(self, type):
+        return (type in self.real_inputs)
 
-    def hide_mouse(self):
-        pygame.mouse.set_visible(False)
+    def has_fake_input(self, type):
+        return (type in self.fake_inputs)
 
     def set_fps_limit(self, fps):
         self.fps = fps
@@ -445,12 +643,59 @@ class Backend:
         return self.gfx_state.buffer.get_height()
 
     ## INPUT
+    def got_key_down(self, key, raw_event=None):
+        if key >= 32 and key <= 255:
+            if raw_event:
+                self.letters_pressed += raw_event.unicode
+            else:
+                # does not work for 3 -> # and stuff. Maybe make a
+                # generic way to fix that
+                if (self.is_key_pressed(301) 
+                    or self.is_key_pressed(303) 
+                    or self.is_key_pressed(304)): 
+                    self.letters_pressed += chr(key).upper()
+                else:
+                    self.letters_pressed += chr(key)
+                
+        self.keys_just_down.append(key)
+        self.keys_down.append(key)
+
+    def got_key_up(self, key):
+        self.keys_just_up.append(key)
+        if key in self.keys_down:
+            self.keys_down.remove(key)
+
+    def got_mouse_move(self, x, y):
+        self.mouse_x = x
+        self.mouse_y = y
+
+    def got_mouse_down(self, button):
+        self.mouse_just_down.append(button)
+        self.mouse_down.append(button)
+
+    def got_mouse_up(self, button):
+        self.mouse_just_up.append(button)
+        if button in self.mouse_down:
+            self.mouse_down.remove(button)
+
+    def got_joy_axis_move(axis, value):
+        self.joy_axes[axis] = value
+
+    def got_joy_down(self, button):
+        self.joy_just_down.append(button)
+        self.joy_down.append(button)
+
+    def got_joy_up(self, button):
+        self.joy_just_up.append(event.button)
+        if event.button in self.joy_down:
+            self.joy_down.remove(event.button)
+
     def on_key_down(self, key):
         return key in self.keys_just_down
 
     def on_key_up(self, key):
         return key in self.keys_just_up
-
+        
     def is_key_pressed(self, key):
         return key in self.keys_down
 
@@ -460,11 +705,17 @@ class Backend:
     def get_letters_pressed(self):
         return self.letters_pressed
 
+    def show_mouse(self):
+        pygame.mouse.set_visible(True)
+
+    def hide_mouse(self):
+        pygame.mouse.set_visible(False)
+
     def get_mouse_x(self):
-        return pygame.mouse.get_pos()[0] / self.scale
+        return self.mouse_x
 
     def get_mouse_y(self):
-        return pygame.mouse.get_pos()[1] / self.scale
+        return self.mouse_y
 
     def on_mouse_down(self, button):
         return button in self.mouse_just_down
@@ -481,8 +732,6 @@ class Backend:
     def on_joy_down(self, button):
         return button in self.joy_just_down
 
-    # todo: implement hat/dpad as button=sgl.joy.down or something
-
     def on_joy_up(self, button):
         return button in self.joy_just_up
 
@@ -493,7 +742,7 @@ class Backend:
         return self.joy_down
 
     def get_joy_axis(self, axis):
-        return self.joystick.get_axis(axis)
+        return self.joy_axes.get(axis, 0)
 
     def get_joy_num_axes(self):
         return self.joystick.get_numaxes()
