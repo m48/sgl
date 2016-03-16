@@ -83,8 +83,9 @@ def make_movie(file="", update=None, draw=None, duration=0, fps=24, width=0, hei
         update()
         draw()
         if display: frame()
-
-        return to_numpy().swapaxes(0,1)
+ 
+        array = to_numpy().swapaxes(0,1).copy()
+        return array
 
     clip = moviepy.editor.VideoClip(make_frame=get_frame, duration=duration)
 

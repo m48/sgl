@@ -677,7 +677,7 @@ class Backend:
         pygame.image.save(self.gfx_state.buffer, file)
 
     def to_numpy(self):
-        return pygame.surfarray.array3d(self.gfx_state.buffer)
+        return pygame.surfarray.pixels3d(self.gfx_state.buffer)
 
     def from_numpy(self, array):
         return pygame.surfarray.make_surface(array)
