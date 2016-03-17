@@ -6,4 +6,4 @@ include LICENSE.txt
 include README.rst
 
 # Include more data files
-# recursive-include docs *
+recursive-include examples *
