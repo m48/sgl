@@ -210,10 +210,10 @@ def blit(thing, x, y, alpha=255, flip_v=False, flip_h=False,
          src_x=0, src_y=0, src_width=None, src_height=None, 
          blend_mode=0, pretty=False):    
     Backend.blit(thing, x, y, alpha, flip_v, flip_h, 
-                 angle=0, width=None, height=None, scale=1, 
-                 a_x=0, a_y=0, 
-                 src_x=0, src_y=0, src_width=None, src_height=None, 
-                 blend_mode=0, pretty=False)
+                 angle, width, height, scale, 
+                 a_x, a_y, 
+                 src_x, src_y, src_width, src_height, 
+                 blend_mode, pretty)
 
 ## DRAWING
 def set_smooth(smooth):

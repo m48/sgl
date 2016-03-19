@@ -127,7 +127,7 @@ class FlipDemo():
         if (sgl.on_key_up(sgl.key.up)):
             self.flip_horizontal = not self.flip_horizontal
 
-        if (sgl.on_key_down(sgl.key.down)):
+        if (sgl.on_key_up(sgl.key.down)):
             self.flip_vertical = not self.flip_vertical
 
     def draw(self):
@@ -136,6 +136,95 @@ class FlipDemo():
         sgl.blit(self.smiley, self.x, 8, flip_h=self.flip_horizontal, flip_v=self.flip_vertical)
 
         text = "flip_h: {} (up key) flip_v: {} (down key)".format(self.flip_horizontal, self.flip_vertical)
+        sgl.set_fill(0)
+        sgl.draw_text(text, 8+1, (sgl.get_height() - 3*8) +1) 
+
+        sgl.set_fill(1.0)
+        sgl.draw_text(text, 8, sgl.get_height() - 3*8) 
+
+class ScaleDemo():
+    name = "Scaling test"
+    description = "You can resize graphics as well!"
+
+    def __init__(self):
+        self.clouds = sgl.load_image("hd-clouds.png")
+        self.smiley = sgl.load_alpha_image("hd-smiley.png")
+        self.pretty = False
+        self.rectangle = False
+
+    def update(self):
+        if (sgl.on_key_up(sgl.key.up)):
+            self.pretty = not self.pretty
+
+        if (sgl.on_key_up(sgl.key.down)):
+            self.rectangle = not self.rectangle
+
+    def draw(self):
+        sgl.blit(self.clouds, 0, 0)
+
+        x,y = 8,8
+        w,h = sgl.get_mouse_x()-x, sgl.get_mouse_y()-y-73
+
+        sgl.blit(self.smiley, x, y, width=w, height=h, pretty=self.pretty)
+
+        if self.rectangle:
+            sgl.no_fill()
+            sgl.set_stroke(0)
+            sgl.draw_rect(x-1, y-1, w+2, h+2)
+            sgl.draw_rect(x+1, y+1, w-2, h-2)
+            sgl.set_stroke(1.0)
+            sgl.draw_rect(x, y, w, h)
+
+            text = "({}x{})".format(w,h)
+            sgl.set_fill(0)
+            sgl.draw_text(text, x+w+1, y+h+1) 
+
+            sgl.set_fill(1.0)
+            sgl.draw_text(text, x+w, y+h) 
+
+        text = "pretty: {} (up) stats: {} (down)".format(self.pretty, self.rectangle)
+        sgl.set_fill(0)
+        sgl.draw_text(text, 8+1, (sgl.get_height() - 3*8) +1) 
+
+        sgl.set_fill(1.0)
+        sgl.draw_text(text, 8, sgl.get_height() - 3*8) 
+
+class RotateDemo():
+    name = "Rotate test"
+    description = "Oh god"
+
+    def __init__(self):
+        self.clouds = sgl.load_image("hd-clouds.png")
+        self.smiley = sgl.load_alpha_image("hd-smiley.png")
+        self.pretty = False
+        self.rectangle = False
+        self.angle = 0
+
+    def update(self):
+        if (sgl.on_key_up(sgl.key.up)):
+            self.pretty = not self.pretty
+
+        if (sgl.on_key_up(sgl.key.down)):
+            self.rectangle = not self.rectangle
+
+        self.angle += 50 * sgl.get_dt()
+        if self.angle > 360: self.angle = 0
+
+    def draw(self):
+        sgl.blit(self.clouds, 0, 0)
+
+        x,y = 8,8
+        a_x,a_y = sgl.get_mouse_x()-x, sgl.get_mouse_y()-73-y
+        angle = int(self.angle)
+
+        sgl.blit(self.smiley, sgl.get_width()/2, sgl.get_height()/2, angle=angle, a_x=128/2, a_y=128/2, pretty=self.pretty)
+        # sgl.blit(self.smiley, sgl.get_width()/2, sgl.get_height()/2, angle=angle, a_x=128/2, a_y=128/2, scale=1.0+angle/360.0, pretty=self.pretty)
+
+        if self.rectangle:
+            sgl.no_stroke()
+            sgl.set_fill(0,1.0,0)
+            sgl.draw_circle(sgl.get_width()/2, sgl.get_height()/2, 2)
+        text = "{}, pretty: {} (up) stats: {} (down)".format(angle, self.pretty, self.rectangle)
         sgl.set_fill(0)
         sgl.draw_text(text, 8+1, (sgl.get_height() - 3*8) +1) 
 
@@ -158,8 +247,8 @@ class Game(object):
         self.demo_surface = sgl.make_surface(320, 167, 0.25)
 
         self.demo = None
-        self.demos = [TestDemo, DrawDemo, AlphaDemo, FlipDemo]
-        self.demo_index = 0
+        self.demos = [TestDemo, DrawDemo, AlphaDemo, FlipDemo, ScaleDemo, RotateDemo]
+        self.demo_index = 5
         self.demo_has_input = False
 
         self.update_demo()

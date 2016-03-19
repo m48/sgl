@@ -490,13 +490,98 @@ class Backend:
              src_x=0, src_y=0, src_width=None, src_height=None, 
              blend_mode=0, pretty=False):
 
-        new_thing = None
+        # Handle scaling
+        if width or height or scale != 1:
+            # Store original values
+            orig_width = thing.get_width()
+            orig_height = thing.get_height()
 
+            # If either size is zero, just don't draw it
+            if width == 0 or height == 0: return
+
+            # If user leaves out one of the values, it's just the
+            # original value
+            if not width: width = thing.get_width()
+            if not height: height = thing.get_height()
+
+            # Apply scaling for both dimensions
+            if scale: width = int(width*scale); height = int(height*scale)
+
+            # Make sure the anchor point is still in the right spot
+            a_x = int(a_x*(width/float(orig_width)))
+            a_y = int(a_y*(height/float(orig_height)))
+
+            # Flip graphic with negative values
+            if width < 0:
+                width = -width
+                x -= width
+                flip_h = not flip_h
+            if height < 0:
+                height = -height
+                y -= height
+                flip_v = not flip_v
+
+            # Actually do scaling
+            if pretty:
+                thing = pygame.transform.smoothscale(thing, (width, height))
+            else:
+                thing = pygame.transform.scale(thing, (width, height))
+
+        # Handle flipping
         if flip_h or flip_v:
-            new_thing = pygame.transform.flip(thing, flip_h, flip_v)
+            thing = pygame.transform.flip(thing, flip_h, flip_v)
 
-        thing_to_blit = new_thing if new_thing else thing
-        
+        # Handle rotating
+        if angle != 0:
+            # First, make a surface twice as big as the one we want
+            # to draw
+            w = thing.get_width()
+            h = thing.get_height()
+            new_surface = self.make_surface(w*2, h*2)
+            # (Possibly make it more dynamic than just twice as big?
+            # Like, we really don't need to make any additional
+            # surface if the anchor point is in the middle. And if the
+            # anchor point is really distant from the image, then this
+            # isn't big enough.)
+
+            # You can visualize the surface with this code
+            # pygame.draw.rect(new_surface, (255,0,0), (0,0,w*2,h*2))
+
+            # Then, draw the original surface at a point that will
+            # make the anchor point at the center
+            nx = w - a_x
+            ny = h - a_y
+            new_surface.blit(thing, (nx, ny))
+
+            # You can visualize where the anchor point is with
+            # this code
+            # a_x += nx
+            # a_y += ny
+            # pygame.draw.rect(new_surface, (0,255,0), (a_x-2,a_y-2,4,4))
+
+            # Draw this surface instead of the original
+            thing = new_surface
+
+            # Actually do rotation
+            if pretty:
+                thing = pygame.transform.rotozoom(thing, angle, 1.0)
+            else:
+                thing = pygame.transform.rotate(thing, angle)
+            # (Possibly use rotozoom to scale when you have pretty on
+            # and the aspect ratio is kept?)
+
+            # Then draw the expanded surface at the center
+            x -= thing.get_width()/2
+            y -= thing.get_height()/2
+
+        # If we're not rotating, apply anchor point in normal way
+        else:
+            x -= a_x
+            y -= a_y
+
+        thing_to_blit = thing # new_thing if new_thing else thing
+
+        # Handle alpha
         # ARGH, setting alpha makes this true. Find different test
         if pygame.SRCALPHA & thing_to_blit.get_flags():
             thing_to_blit.set_alpha(alpha)
