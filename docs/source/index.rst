@@ -15,6 +15,7 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
+   sgl-core-ref
 
 
 Indices and tables
