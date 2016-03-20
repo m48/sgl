@@ -317,6 +317,12 @@ def get_width():
 def get_height():
     return Backend.get_height()
 
+def invert(surface=None):
+    return Backend.invert(surface)
+
+def grayscale(surface=None):
+    return Backend.grayscale(surface)
+
 @needs_ability(abilities.save_buffer)
 def save_image(file):
     extension = os.path.splitext(file)[1].lower()
@@ -415,6 +421,14 @@ def show_mouse():
 @needs_input(input.mouse)
 def hide_mouse():
     Backend.hide_mouse()
+
+@needs_input(input.mouse)
+def get_prev_mouse_x():
+    return Backend.get_prev_mouse_x()
+
+@needs_input(input.mouse)
+def get_prev_mouse_y():
+    return Backend.get_prev_mouse_y()
 
 @needs_input(input.mouse)
 def get_mouse_x():

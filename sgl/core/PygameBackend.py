@@ -1,4 +1,23 @@
 import pygame
+
+try:
+    import pygame.gfxdraw
+    has_gfxdraw = True
+except:
+    has_gfxdraw = False
+
+try:
+    import pygame.freetype
+    has_freetype = True
+except:
+    has_freetype = False
+
+try:
+    import numpy as np
+    has_numpy = True
+except:
+    has_numpy = False
+
 import os
 from Constants import *
 from Errors import *
@@ -215,6 +234,9 @@ class Backend:
 
     mouse_x = 0
     mouse_y = 0
+
+    p_mouse_x = 0
+    p_mouse_y = 0
 
     joy_down = []
     joy_just_down = []
@@ -490,12 +512,23 @@ class Backend:
              src_x=0, src_y=0, src_width=None, src_height=None, 
              blend_mode=0, pretty=False):
 
+        if src_width or src_height:
+            new_surface = pygame.Surface((width, height))
+            new_surface.blit(
+                thing, (0,0), 
+                pygame.Rect(src_x, src_y, src_width, src_height)
+            )
+            thing = new_surface
+
+        # Store original values
+        orig_width = thing.get_width()
+        orig_height = thing.get_height()
+
+        if isinstance(a_x, float): a_x = orig_width * a_x
+        if isinstance(a_y, float): a_y = orig_height * a_y
+
         # Handle scaling
         if width or height or scale != 1:
-            # Store original values
-            orig_width = thing.get_width()
-            orig_height = thing.get_height()
-
             # If either size is zero, just don't draw it
             if width == 0 or height == 0: return
 
@@ -505,11 +538,15 @@ class Backend:
             if not height: height = thing.get_height()
 
             # Apply scaling for both dimensions
-            if scale: width = int(width*scale); height = int(height*scale)
+            if scale: 
+                width = int(width*scale)
+                height = int(height*scale)
 
             # Make sure the anchor point is still in the right spot
-            a_x = int(a_x*(width/float(orig_width)))
-            a_y = int(a_y*(height/float(orig_height)))
+            x_ratio = (width/float(orig_width))
+            y_ratio = (height/float(orig_height))
+            a_x = int(a_x*x_ratio)
+            a_y = int(a_y*y_ratio)
 
             # Flip graphic with negative values
             if width < 0:
@@ -526,6 +563,9 @@ class Backend:
                 thing = pygame.transform.smoothscale(thing, (width, height))
             else:
                 thing = pygame.transform.scale(thing, (width, height))
+
+        else:
+            x_ratio, y_ratio = 1, 1
 
         # Handle flipping
         if flip_h or flip_v:
@@ -564,7 +604,8 @@ class Backend:
 
             # Actually do rotation
             if pretty:
-                thing = pygame.transform.rotozoom(thing, angle, 1.0)
+                scale = 1.0
+                thing = pygame.transform.rotozoom(thing, angle, scale)
             else:
                 thing = pygame.transform.rotate(thing, angle)
             # (Possibly use rotozoom to scale when you have pretty on
@@ -581,6 +622,15 @@ class Backend:
 
         thing_to_blit = thing # new_thing if new_thing else thing
 
+        if blend_mode == blend.add: 
+            flag = pygame.BLEND_ADD
+        elif blend_mode == blend.multiply: 
+            flag = pygame.BLEND_MULT
+        elif blend_mode == blend.subtract: 
+            flag = pygame.BLEND_SUB
+        else:
+            flag = 0
+
         # Handle alpha
         # ARGH, setting alpha makes this true. Find different test
         if pygame.SRCALPHA & thing_to_blit.get_flags():
@@ -594,16 +644,16 @@ class Backend:
                 if pygame.SRCALPHA & background.get_flags():
                     raise BackendError("Pygame can't handle drawing alpha onto alpha")
 
-                self.gfx_state.buffer.blit(thing_to_blit, (x, y))
+                self.gfx_state.buffer.blit(thing_to_blit, (x, y), special_flags=flag)
 
                 background.set_alpha(255 - alpha)
                 self.gfx_state.buffer.blit(background, (x, y))
             else:
-                self.gfx_state.buffer.blit(thing_to_blit, (x, y))
+                self.gfx_state.buffer.blit(thing_to_blit, (x, y), special_flags=flag)
         else:
             thing_to_blit.set_alpha(alpha)
 
-            self.gfx_state.buffer.blit(thing_to_blit, (x, y))
+            self.gfx_state.buffer.blit(thing_to_blit, (x, y), special_flags=flag)
          
     ## DRAWING
     def set_fill(self, *color):
@@ -646,11 +696,17 @@ class Backend:
 
     def draw_rect(self, x, y, width, height):
         if self.gfx_state.fill_color != None:
-            pygame.draw.rect(
-                self.gfx_state.buffer, 
-                self.gfx_state.fill_color, 
-                ((x, y), (width, height)),
-                0
+            # pygame.draw.rect(
+            #     self.gfx_state.buffer, 
+            #     self.gfx_state.fill_color, 
+            #     ((x, y), (width, height)),
+            #     0
+            # )
+
+            # Apparently this is more optimized
+            self.gfx_state.buffer.fill(
+                self.gfx_state.fill_color,
+                ((x, y), (width, height))
             )
 
         if self.gfx_state.stroke_color != None and self.gfx_state.stroke_weight > 0:
@@ -758,6 +814,52 @@ class Backend:
     def get_height(self):
         return self.gfx_state.buffer.get_height()
 
+    def invert(self, surface):
+        if not has_numpy:
+            raise BackendError("NumPy is required for this effect")
+
+        if surface == None: 
+            surface = self.gfx_state.buffer
+            modify = True
+        else:
+            surface = surface.copy()
+            modify = False
+
+        # Taken from:
+        # http://stackoverflow.com/questions/5891808/how-to-invert-colors-of-an-image-in-pygame
+        pixels = pygame.surfarray.pixels2d(surface)
+        pixels ^= 2 ** 32 - 1
+        del pixels
+
+        if modify:
+            return
+        else:
+            return surface
+
+    def grayscale(self, surface):
+        if not has_numpy:
+            raise BackendError("NumPy is required for this effect")
+
+        if surface == None: 
+            surface = self.gfx_state.buffer
+            modify = True
+        else:
+            surface = surface.copy()
+            modify = False
+
+        # Taken from:
+        # http://stackoverflow.com/questions/12201577/how-can-i-convert-an-rgb-image-into-grayscale-in-python
+        pixels = pygame.surfarray.pixels3d(surface)
+        new = np.dot(pixels[...,:3], [0.299, 0.587, 0.114])
+        new = np.expand_dims(new, 2)
+        pixels[:] = new
+        del pixels
+
+        if modify:
+            return
+        else:
+            return surface
+
     def save_image(self, file):
         pygame.image.save(self.gfx_state.buffer, file)
 
@@ -791,6 +893,8 @@ class Backend:
             self.keys_down.remove(key)
 
     def got_mouse_move(self, x, y):
+        self.p_mouse_x = self.mouse_x
+        self.p_mouse_y = self.mouse_y
         self.mouse_x = x
         self.mouse_y = y
 
@@ -835,6 +939,12 @@ class Backend:
 
     def hide_mouse(self):
         pygame.mouse.set_visible(False)
+
+    def get_prev_mouse_x(self):
+        return self.p_mouse_x
+
+    def get_prev_mouse_y(self):
+        return self.p_mouse_y
 
     def get_mouse_x(self):
         return self.mouse_x

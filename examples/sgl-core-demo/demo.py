@@ -108,7 +108,7 @@ class AlphaDemo():
 
 class FlipDemo():
     name = "Flip"
-    description = "It's very easy to flip graphics in SGL!"
+    description = "It's very easy to flip graphics in SGL! "
 
     def __init__(self):
         self.x = 0
@@ -144,7 +144,7 @@ class FlipDemo():
 
 class ScaleDemo():
     name = "Scaling test"
-    description = "You can resize graphics as well!"
+    description = "You can resize graphics as well! Move the mouse to resize the smiley face."
 
     def __init__(self):
         self.clouds = sgl.load_image("hd-clouds.png")
@@ -191,21 +191,19 @@ class ScaleDemo():
 
 class RotateDemo():
     name = "Rotate test"
-    description = "Oh god"
+    description = "SGL lets you easily rotate graphics, including from points that are not the center!"
 
     def __init__(self):
         self.clouds = sgl.load_image("hd-clouds.png")
         self.smiley = sgl.load_alpha_image("hd-smiley.png")
+        self.pendulum = sgl.load_image("pendulum.png")
+
         self.pretty = False
-        self.rectangle = False
         self.angle = 0
 
     def update(self):
         if (sgl.on_key_up(sgl.key.up)):
             self.pretty = not self.pretty
-
-        if (sgl.on_key_up(sgl.key.down)):
-            self.rectangle = not self.rectangle
 
         self.angle += 50 * sgl.get_dt()
         if self.angle > 360: self.angle = 0
@@ -213,29 +211,92 @@ class RotateDemo():
     def draw(self):
         sgl.blit(self.clouds, 0, 0)
 
-        x,y = 8,8
-        a_x,a_y = sgl.get_mouse_x()-x, sgl.get_mouse_y()-73-y
         angle = int(self.angle)
 
-        sgl.blit(self.smiley, sgl.get_width()/2, sgl.get_height()/2, angle=angle, a_x=128/2, a_y=128/2, pretty=self.pretty)
-        # sgl.blit(self.smiley, sgl.get_width()/2, sgl.get_height()/2, angle=angle, a_x=128/2, a_y=128/2, scale=1.0+angle/360.0, pretty=self.pretty)
+        sgl.blit(
+            self.smiley,
+            sgl.get_width()/2-80,
+            sgl.get_height()/2,
+            angle=angle,
+            a_x=0.5, a_y=0.5,
+            pretty=self.pretty
+        )
 
-        if self.rectangle:
-            sgl.no_stroke()
-            sgl.set_fill(0,1.0,0)
-            sgl.draw_circle(sgl.get_width()/2, sgl.get_height()/2, 2)
-        text = "{}, pretty: {} (up) stats: {} (down)".format(angle, self.pretty, self.rectangle)
+        # sgl.blit(
+        #     self.smiley, 
+        #     sgl.get_width()/2, 
+        #     sgl.get_height()/2, 
+        #     angle=angle, 
+        #     a_x=128/2, a_y=128/2, 
+        #     scale=1.0+angle/360.0, 
+        #     pretty=self.pretty
+        # )
+
+        sgl.blit(
+            self.pendulum,
+            sgl.get_width()/2+80,
+            sgl.get_height()/2,
+            angle=angle,
+            a_x=0.5, a_y=0,
+            pretty=self.pretty
+        )
+
+        text = "pretty: {} (up)".format(self.pretty)
+
         sgl.set_fill(0)
         sgl.draw_text(text, 8+1, (sgl.get_height() - 3*8) +1) 
-
         sgl.set_fill(1.0)
         sgl.draw_text(text, 8, sgl.get_height() - 3*8) 
+
+class BlendDemo():
+    name = "Blending modes"
+    description = "graphics in SGL sfafasf! "
+
+    def __init__(self):
+        self.x = 0
+        self.vel = 50
+
+        self.clouds = sgl.load_image("hd-clouds.png")
+        self.smiley = sgl.load_image("fireball.png")
+        self.modes = [
+            sgl.blend.normal, sgl.blend.add, 
+            sgl.blend.multiply, sgl.blend.subtract
+        ]
+        self.mode_index = 0
+
+    def update(self):
+        self.x += self.vel * sgl.get_dt()
+        if self.x > sgl.get_width()-128: self.vel = -self.vel
+        if self.x < 0: self.vel = -self.vel
+
+        if (sgl.on_key_up(sgl.key.up)):
+            self.mode_index += 1
+            if self.mode_index > len(self.modes)-1:
+                self.mode_index = 0
+
+        if (sgl.on_key_up(sgl.key.down)):
+            self.mode_index -= 1
+            if self.mode_index < 0:
+                self.mode_index = len(self.modes)-1
+
+    def draw(self):
+        sgl.blit(self.clouds, 0, 0)
+
+        sgl.blit(self.smiley, self.x, 8, blend_mode=self.modes[self.mode_index])
+
+        text = "blending mode: {} (arrow keys)".format(sgl.blend.convert(self.mode_index))
+        sgl.set_fill(0)
+        sgl.draw_text(text, 8+1, (sgl.get_height() - 3*8) +1) 
+        sgl.set_fill(1.0)
+        sgl.draw_text(text, 8, sgl.get_height() - 3*8) 
+
+        sgl.grayscale()
 
 class Game(object):
     def __init__(self):
         self.header = sgl.load_image("header.png")
         self.arrow_black = sgl.load_image("arrow-a.png")
-        self.arrow_white = sgl.load_image("arrow-b.png")
+        self.arrow_white = sgl.invert(self.arrow_black) # sgl.load_image("arrow-b.png")
 
         self.app_name = "SGL Demo"
 
@@ -247,13 +308,15 @@ class Game(object):
         self.demo_surface = sgl.make_surface(320, 167, 0.25)
 
         self.demo = None
-        self.demos = [TestDemo, DrawDemo, AlphaDemo, FlipDemo, ScaleDemo, RotateDemo]
-        self.demo_index = 5
+        self.demos = [TestDemo, DrawDemo, AlphaDemo, FlipDemo, ScaleDemo, RotateDemo, BlendDemo]
+        self.demo_index = 6
         self.demo_has_input = False
 
         self.update_demo()
-
+        
     def update(self):
+        sgl.set_title("SGL Core Demo: {} FPS".format(int(sgl.get_fps())))
+
         if ((sgl.is_key_pressed(sgl.key.left_control) or
             sgl.is_key_pressed(sgl.key.right_control)) or 
             not self.demo_has_input):
