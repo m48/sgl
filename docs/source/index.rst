@@ -15,7 +15,10 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
+   install
+   examples
    sgl-core-ref
+   sgl-lib-ref
 
 
 Indices and tables

@@ -290,8 +290,6 @@ class BlendDemo():
         sgl.set_fill(1.0)
         sgl.draw_text(text, 8, sgl.get_height() - 3*8) 
 
-        sgl.grayscale()
-
 class Game(object):
     def __init__(self):
         self.header = sgl.load_image("header.png")
@@ -309,7 +307,7 @@ class Game(object):
 
         self.demo = None
         self.demos = [TestDemo, DrawDemo, AlphaDemo, FlipDemo, ScaleDemo, RotateDemo, BlendDemo]
-        self.demo_index = 6
+        self.demo_index = 0
         self.demo_has_input = False
 
         self.update_demo()
