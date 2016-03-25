@@ -31,10 +31,10 @@ setuptools.setup(
         '': ['*.txt', '*.png'],
     },
 
-    install_requires=["pygame"],
+    install_requires=[],
 
     extras_require={
-        "extra": ["Pillow", "numpy"],
+        "pygame": ["pygame", "numpy"],
         "HTML5": ["pyjs"],
         "video": ["moviepy"],
     },
