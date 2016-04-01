@@ -12,11 +12,20 @@ class TestDemo():
 
     x = 0
     vel = 150
-    
+    score = 0
+
     def update(self):
         self.x += self.vel * sgl.get_dt()
         if self.x > sgl.get_width(): self.vel = -self.vel
         if self.x < 0: self.vel = -self.vel
+
+        x = sgl.get_mouse_x()
+        y = sgl.get_mouse_y()-73
+        circle_y = sgl.get_height()/2
+        if sgl.on_mouse_up():
+            if (x > self.x-20 and x < self.x+20 and
+                y > circle_y-20 and y < circle_y+20):
+                self.score += 1
 
     def draw(self):
         sgl.clear(0)
@@ -25,8 +34,10 @@ class TestDemo():
         with sgl.with_state():
             sgl.no_fill()
             sgl.set_stroke(1.0,0,0)
-            sgl.set_stroke_weight(2)
+            sgl.set_stroke_weight(1)
             sgl.draw_circle(sgl.get_mouse_x(), sgl.get_mouse_y()-73, 10)
+
+        sgl.draw_text("Circle clicks: {}".format(self.score), 8, 8)
 
 class DrawDemo():
     name = "Drawing Functions"
@@ -250,7 +261,7 @@ class RotateDemo():
 
 class BlendDemo():
     name = "Blending modes"
-    description = "graphics in SGL sfafasf! "
+    description = "You can also apply different blending modes to graphics in SGL. "
 
     def __init__(self):
         self.x = 0
@@ -290,11 +301,62 @@ class BlendDemo():
         sgl.set_fill(1.0)
         sgl.draw_text(text, 8, sgl.get_height() - 3*8) 
 
+class MusicDemo():
+    name = "Music and sound"
+    description = "Use the arrow keys to change what song is playing, and click to make a sound effect play."
+
+    def __init__(self):
+        self.clouds = sgl.load_image("hd-clouds.png")
+        self.sound = sgl.load_sound("shoot.wav")
+        self.songs = [
+            "chased.mid", "past.ogg", "susp.xm", "dd-susp.xm"
+        ]
+        self.song_index = 0
+        self.update_song()
+
+    def __del__(self):
+        try:
+            sgl.stop_music()
+        except:
+            pass
+
+    def update_song(self):
+        sgl.play_music(self.songs[self.song_index])
+
+    def update(self):
+        if (sgl.on_key_up(sgl.key.up)):
+            self.song_index += 1
+            if self.song_index > len(self.songs)-1:
+                self.song_index = 0
+            self.update_song()
+
+        if (sgl.on_key_up(sgl.key.down)):
+            self.song_index -= 1
+            if self.song_index < 0:
+                self.song_index = len(self.songs)-1
+            self.update_song()
+
+        if sgl.on_mouse_down():
+            sgl.play_sound(self.sound)
+
+    def draw(self):
+        sgl.blit(self.clouds, 0, 0)
+
+        text = "music: {} (up/down)".format(self.songs[self.song_index])
+        sgl.set_fill(0)
+        sgl.draw_text(text, 8+1, (sgl.get_height() - 3*8) +1) 
+        sgl.set_fill(1.0)
+        sgl.draw_text(text, 8, sgl.get_height() - 3*8) 
+
+
 class Game(object):
     def __init__(self):
         self.header = sgl.load_image("header.png")
         self.arrow_black = sgl.load_image("arrow-a.png")
-        self.arrow_white = sgl.invert(self.arrow_black) # sgl.load_image("arrow-b.png")
+        try:
+            self.arrow_white = sgl.invert(self.arrow_black)
+        except:
+            self.arrow_white = sgl.load_image("arrow-b.png")
 
         self.app_name = "SGL Demo"
 
@@ -306,8 +368,9 @@ class Game(object):
         self.demo_surface = sgl.make_surface(320, 167, 0.25)
 
         self.demo = None
-        self.demos = [TestDemo, DrawDemo, AlphaDemo, FlipDemo, ScaleDemo, RotateDemo, BlendDemo]
-        self.demo_index = 0
+        self.demos = [TestDemo, DrawDemo, AlphaDemo, FlipDemo, 
+                      ScaleDemo, RotateDemo, BlendDemo, MusicDemo]
+        self.demo_index = 0 #len(self.demos)-1
         self.demo_has_input = False
 
         self.update_demo()
