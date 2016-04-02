@@ -90,7 +90,7 @@ def update(dt):
     manager.update(dt)
 
 if __name__ == "__main__":
-    import __init__ as sgl
+    import sgl
     sgl.init(640, 480, 1)
 
     class p:
