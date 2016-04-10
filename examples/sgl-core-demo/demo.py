@@ -39,7 +39,7 @@ class TestDemo():
 
         sgl.draw_text("Circle clicks: {}".format(self.score), 8, 8)
 
-class DrawDemo():
+class DrawDemo(object):
     name = "Drawing Functions"
     description = "SGL provides basic drawing commands. Use the arrow keys to change the stroke thickness!"
 
@@ -55,8 +55,16 @@ class DrawDemo():
             and self.stroke > 0):
             self.stroke -= 1
 
-    def draw(self):
+    def update_shape_style(self):
+        sgl.set_stroke(0)
+        sgl.set_stroke_weight(int(self.stroke))
+        sgl.set_fill(0.7)
+
+    def draw_background(self):
         sgl.clear(1.0)
+
+    def draw(self):
+        self.draw_background()
 
         sgl.set_fill(0)
         sgl.draw_text("Circle", 1*8, 1*8)
@@ -65,19 +73,31 @@ class DrawDemo():
         sgl.draw_text("Rectangle", 20*8, 1*8)
         sgl.draw_text("Line", 20*8, 10*8)
 
-        stroke = int(self.stroke)
+        sgl.draw_text("Stroke Weight: {}".format(int(self.stroke)), 8, sgl.get_height() - 3*8) 
 
-        sgl.draw_text("Stroke Weight: {}".format(stroke), 8, sgl.get_height() - 3*8) 
-
-        sgl.set_stroke(0)
-        sgl.set_stroke_weight(stroke)
-        sgl.set_fill(0.7)
+        self.update_shape_style()
 
         sgl.draw_circle(1*8, 3.5*8, 5*8, False)
         sgl.draw_circle(10*8, 6*8, 5*8, True)
         sgl.draw_ellipse(1*8, 12.5*8, 10*8, 5*8, False)
         sgl.draw_rect(20*8, 3.5*8, 10*8, 5*8)
         sgl.draw_line(20*8, 12.5*8, 30*8, 16*8)
+
+class DrawDemoAlpha(DrawDemo):
+    name = "Drawing Functions"
+    description = "Shapes can also be semitransparent!"
+
+    def __init__(self):
+        super(DrawDemoAlpha, self).__init__()
+        self.background = sgl.load_image("hd-clouds.png")
+
+    def update_shape_style(self):
+        sgl.set_stroke(0, 0.5)
+        sgl.set_stroke_weight(int(self.stroke))
+        sgl.set_fill(0.7, 0.5)
+
+    def draw_background(self):
+        sgl.blit(self.background, 0, 0)
         
 class AlphaDemo():
     name = "Alpha"
@@ -368,8 +388,9 @@ class Game(object):
         self.demo_surface = sgl.make_surface(320, 167, 0.25)
 
         self.demo = None
-        self.demos = [TestDemo, DrawDemo, AlphaDemo, FlipDemo, 
-                      ScaleDemo, RotateDemo, BlendDemo, MusicDemo]
+        self.demos = [TestDemo, DrawDemo, DrawDemoAlpha, AlphaDemo, 
+                      FlipDemo, ScaleDemo, RotateDemo, BlendDemo, 
+                      MusicDemo]
         self.demo_index = 0 #len(self.demos)-1
         self.demo_has_input = False
 

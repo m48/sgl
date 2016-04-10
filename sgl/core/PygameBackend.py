@@ -686,57 +686,171 @@ class Backend:
 
     def draw_line(self, x1, y1, x2, y2):
         if self.gfx_state.stroke_color != None and self.gfx_state.stroke_weight > 0:
-            pygame.draw.line(
-                self.gfx_state.buffer, 
-                self.gfx_state.stroke_color, 
-                (x1, y1), 
-                (x2, y2), 
-                self.gfx_state.stroke_weight
-            )
+            # By default Pygame can't draw transparent shapes
+            # correctly, so we have to help it out :|
+            if Util.is_color_alpha(self.gfx_state.stroke_color):
+
+                # Separate out color and alpha (for convenience)
+                color = self.gfx_state.stroke_color[0:3]
+                alpha = self.gfx_state.stroke_color[3]
+
+                # Store where we need to draw the surface
+                x, y = x1, y1
+
+                # Shifts the line coordinates so they start at zero
+                x2, y2, x1, y1 = x2-x1, y2-y1, 0, 0
+
+                # If line goes backwards in x direction
+                if x2 < 0: 
+                    x = x2          # Shift drawing offset
+                    x2 = -x2        # Make coordinates positive
+                    x2, x1 = x1, x2 # Flip points
+
+                # If line goes backwards in y direction
+                if y2 < 0: 
+                    y = y2
+                    y2 = -y2
+                    y2, y1 = y1, y2
+
+                # Make temporary surface to draw line on
+                destination = self.make_surface(x2, y2)
+
+                # Draw line on that surface as not transparent
+                pygame.draw.line(
+                    destination, 
+                    color, 
+                    (x1, y1), 
+                    (x2, y2), 
+                    self.gfx_state.stroke_weight
+                )
+    
+                # Draw that surface on the screen with transparency
+                self.blit(destination, x, y, alpha=alpha)
+            else:
+                pygame.draw.line(
+                    self.gfx_state.buffer, 
+                    self.gfx_state.stroke_color, 
+                    (x1, y1), 
+                    (x2, y2), 
+                    self.gfx_state.stroke_weight
+                )
 
     def draw_rect(self, x, y, width, height):
-        if self.gfx_state.fill_color != None:
-            # pygame.draw.rect(
-            #     self.gfx_state.buffer, 
-            #     self.gfx_state.fill_color, 
-            #     ((x, y), (width, height)),
-            #     0
-            # )
+        if width < 0: width = -width; x -= width
+        if height < 0: height = -height; y -= height
 
-            # Apparently this is more optimized
-            self.gfx_state.buffer.fill(
-                self.gfx_state.fill_color,
-                ((x, y), (width, height))
-            )
+        if self.gfx_state.fill_color != None:
+
+            if Util.is_color_alpha(self.gfx_state.fill_color):
+
+                surface = self.make_surface(width, height, 
+                    self.gfx_state.fill_color)
+                self.blitf(surface, x, y)
+
+            else:
+                # pygame.draw.rect(
+                #     self.gfx_state.buffer, 
+                #     self.gfx_state.fill_color, 
+                #     ((x, y), (width, height)),
+                #     0
+                # )
+
+                # Apparently this is more optimized
+                self.gfx_state.buffer.fill(
+                    self.gfx_state.fill_color,
+                    ((x, y), (width, height))
+                )
 
         if self.gfx_state.stroke_color != None and self.gfx_state.stroke_weight > 0:
-            pygame.draw.rect(
-                self.gfx_state.buffer, 
-                self.gfx_state.stroke_color, 
-                ((x, y), (width, height)),
-                self.gfx_state.stroke_weight
-            )
+            if Util.is_color_alpha(self.gfx_state.stroke_color):
+    
+                # Expand the temporary surface to fit thicker lines
+                weight = self.gfx_state.stroke_weight
+                x -= weight
+                y -= weight
+                surface = self.make_surface(
+                    width+weight*2, height+weight*2)
+
+                pygame.draw.rect(
+                    surface, 
+                    self.gfx_state.stroke_color[0:3], 
+                    ((weight, weight), (width, height)),
+                    self.gfx_state.stroke_weight
+                )
+    
+                self.blit(surface, x, y, 
+                          alpha=self.gfx_state.stroke_color[3])
+    
+            else:
+                pygame.draw.rect(
+                    self.gfx_state.buffer, 
+                    self.gfx_state.stroke_color, 
+                    ((x, y), (width, height)),
+                    self.gfx_state.stroke_weight
+                )
 
     def draw_ellipse(self, x, y, width, height, from_center=False):
         if from_center:
+            if width < 0: width = -width
+            if height < 0: height = -height
+
             x -= width / 2
             y -= height / 2
 
+        else:
+            if width < 0: width = -width; x -= width
+            if height < 0: height = -height; y -= height
+    
         if self.gfx_state.fill_color != None:
-            pygame.draw.ellipse(
-                self.gfx_state.buffer, 
-                self.gfx_state.fill_color, 
-                ((x, y), (width, height)),
-                0
-            )
+
+            if Util.is_color_alpha(self.gfx_state.fill_color):
+                surface = self.make_surface(width, height)
+
+                pygame.draw.ellipse(
+                    surface, 
+                    self.gfx_state.fill_color[0:3], 
+                    ((0, 0), (width, height)),
+                    0
+                )
+
+                self.blit(surface, x, y, alpha=self.gfx_state.fill_color[3])
+
+            else:
+                pygame.draw.ellipse(
+                    self.gfx_state.buffer, 
+                    self.gfx_state.fill_color, 
+                    ((x, y), (width, height)),
+                    0
+                )
 
         if self.gfx_state.stroke_color != None and self.gfx_state.stroke_weight > 0:
-            pygame.draw.ellipse(
-                self.gfx_state.buffer, 
-                self.gfx_state.stroke_color, 
-                ((x, y), (width, height)),
-                self.gfx_state.stroke_weight
-            )
+
+            if Util.is_color_alpha(self.gfx_state.stroke_color):
+    
+                # Expand the temporary surface to fit thicker lines
+                weight = self.gfx_state.stroke_weight
+                x -= weight
+                y -= weight
+                surface = self.make_surface(
+                    width+weight*2, height+weight*2)
+
+                pygame.draw.ellipse(
+                    surface, 
+                    self.gfx_state.stroke_color[0:3], 
+                    ((weight, weight), (width, height)),
+                    self.gfx_state.stroke_weight
+                )
+    
+                self.blit(surface, x, y, 
+                          alpha=self.gfx_state.stroke_color[3])
+
+            else:
+                pygame.draw.ellipse(
+                    self.gfx_state.buffer, 
+                    self.gfx_state.stroke_color, 
+                    ((x, y), (width, height)),
+                    self.gfx_state.stroke_weight
+                )
 
     def draw_circle(self, x, y, radius, from_center=True):
         self.draw_ellipse(x, y, radius, radius, from_center)

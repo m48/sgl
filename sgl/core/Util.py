@@ -7,7 +7,7 @@ def resolve_color(color):
     color = list(color)
     for index, item in enumerate(color):
         if isinstance(item, float):
-            color[index] = item * 255
+            color[index] = int(item * 255)
 
         if item < 0: 
             color[index] = 0
@@ -22,3 +22,6 @@ def resolve_color(color):
         return (color[0], color[1], color[2])
     elif len(color) == 4:
         return (color[0], color[1], color[2], color[3])
+
+def is_color_alpha(color):
+    return len(color) == 4 and color[3] != 255
