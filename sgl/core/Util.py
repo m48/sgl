@@ -8,6 +8,7 @@ def resolve_color(color):
     for index, item in enumerate(color):
         if isinstance(item, float):
             color[index] = int(item * 255)
+            item = color[index]
 
         if item < 0: 
             color[index] = 0
