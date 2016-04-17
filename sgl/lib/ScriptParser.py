@@ -25,8 +25,19 @@ class Command():
         self.key_arg = key_arg
 
     def __str__(self):
-        format_string = "[{} {} {}]"
-        return format_string.format(self.name, self.pos_arg, self.key_arg)
+        result = "[" + self.name
+
+        if self.pos_arg != []:
+            for item in self.pos_arg:
+                result += " " + repr(item)
+
+        if self.key_arg != {}:
+            for key in sorted(list(self.key_arg)):
+                result += " {}={!r}".format(key, self.key_arg[key])
+
+        result += "]"
+
+        return result
 
 class Parser():
     def __init__(self, text):
@@ -569,4 +580,7 @@ sdgsdg
     result = parser.parse()
 
     for line in result["test"].body:
-        print "'" + str(line) + "'"
+        if is_string(line):
+            print "TEXT: \"" + str(line) + "\""
+        else:
+            print "CMND: " + str(line)
