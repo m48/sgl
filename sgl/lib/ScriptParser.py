@@ -111,7 +111,7 @@ class Parser():
     def literal(self):
         """ Reads any arbitrary value. """
 
-        if self.char == "\"":
+        if self.char == "\"" or self.char == "\'":
             item = self.string_literal()
         elif self.char.isdigit() or self.char == "-":
             item = self.number_literal()
@@ -122,10 +122,20 @@ class Parser():
     def string_literal(self):
         """ Reads and converts a string literal"""
 
-        # Todo: Possibly allow for 's and escaping "s?
         result = ""
-        self.eat("\"")
-        while self.char != "\"" and self.prev_char != "\\":
+
+        starting = self.char
+        if starting != "\"" and starting != "'":
+            self.error("invalid string literal")
+        self.next()
+
+        while True:
+            if self.char == "\\":
+                self.next()
+
+            if self.char == starting and self.prev_char != "\\":
+                break
+
             result += self.char
             self.next()
 
@@ -368,7 +378,7 @@ class BodyParser(Parser):
 
             # don't let string literals or numbers become keys
             # for the key arguments
-            if (self.char == "\"" or 
+            if (self.char == "\"" or self.char == "'" or
                 self.char.isdigit() or self.char == "-"):
                 bad_key = True
             else:
@@ -548,7 +558,7 @@ if __name__ == "__main__":
    Hello there.[pause stuff=1] This...=02 is a test.[pause]
 
    ;; play some music and stuff
-   [play-music "bob's cool.xm" loop=no]
+   [play-music 'bob\\'s cool.xm' loop=no]
    [oth-stuff][hahaa]
 
    ;; do other stuff
