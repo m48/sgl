@@ -3,7 +3,7 @@ from sgl.lib.Rect import Rect
 
 # Todo:
 # * Some type of event propagation (so you can stop mouse clicking from happening to overlapped things)
-# * Merge SpriteGroup with Sprite
+# * Effects
 
 class Sprite(object):
     def __init__(self, graphic=None):
@@ -31,6 +31,13 @@ class Sprite(object):
         # (you shouldn't change these manually)
         self.screen_x, self.screen_y = 0,0
 
+        # List of sprites inside this one
+        self.subsprites = []
+
+        # A rectangle, in screen coordinates, outside of which no
+        # subsprites will be drawn.
+        self.view_rect = None
+
         # Store this object's "parent". This will be the containing
         # SpriteGroup or Scene or something. This is used to calculate
         # the screen coordinates, and to help to reverse your scene.
@@ -48,6 +55,10 @@ class Sprite(object):
 
         # This is the bounding box. Don't change it manually.
         self._rect = Rect()
+
+    def add(self, sprite):
+        sprite.parent = self
+        self.subsprites.append(sprite)
 
     # User facing access
     @property
@@ -138,25 +149,42 @@ class Sprite(object):
         self.screen_x, self.screen_y = self.world_to_screen(*self.position)
 
     def update(self):
-        pass
+        for index, sprite in enumerate(self.subsprites):
+            if sprite.active: 
+                sprite.preupdate()
+                sprite.update()
+                sprite.postupdate()
+
+            if sprite.to_be_deleted:
+                del self.subsprites[index]
 
     # I don't think this is useful for anything
     def postupdate(self):
         pass
 
-    # Add effects eventually
     def draw(self):
-        a_x, a_y = self.real_anchor
-        sgl.blitf(
-            self.surface, 
-            self.screen_x - a_x, self.screen_y - a_y
-        )
+        if not self.visible: return
 
-        # sgl.blit(
-        #     self.surface, 
-        #     self.screen_x, self.screen_y, 
-        #     a_x=self.a_x, a_y=self.a_y
-        # )
+        if self.surface:
+
+            a_x, a_y = self.real_anchor
+            sgl.blitf(
+                self.surface, 
+                self.screen_x - a_x, self.screen_y - a_y
+            )
+
+            # sgl.blit(
+            #     self.surface, 
+            #     self.screen_x, self.screen_y, 
+            #     a_x=self.a_x, a_y=self.a_y
+            # )
+
+        for sprite in self.subsprites:
+            if self.view_rect:
+                if (sprite.screen_rect.is_in(self.view_rect)):
+                    sprite.draw()
+            else:
+                sprite.draw()
 
     # Load surface and sets size accordingly.
     def load_surface(self, surface):
@@ -264,40 +292,8 @@ class AnimatedSprite(Sprite):
 
             self.anim_update_frame()
         # maybe awkward that this does not attempt to make up for
-        # lost time like sgl.lib.Time?
+        # lost time like sgl.lib.Time does?
                 
-
-# Base class for any group of sprites
-class SpriteGroup(Sprite):
-    def __init__(self):
-        super(SpriteGroup, self).__init__()
-
-        self.sprites = []
-        self.view_rect = Rect(
-            0, 0, 
-            sgl.get_width(), sgl.get_height()
-        )
-
-    def add(self, sprite):
-        sprite.parent = self
-        self.sprites.append(sprite)
-
-    def update(self):
-        for index, sprite in enumerate(self.sprites):
-            if sprite.active: 
-                sprite.preupdate()
-                sprite.update()
-                sprite.postupdate()
-
-            if sprite.to_be_deleted:
-                self.sprites[index] = None
-
-    def draw(self):
-        for index, sprite in enumerate(self.sprites):
-            if (sprite.visible 
-                and sprite.screen_rect.is_in(self.view_rect)):
-                sprite.draw()
-
 # Special object to store camera stuff
 class Camera(object):
     def __init__(self):
@@ -321,19 +317,20 @@ class Camera(object):
         return (x - self.x*parallax, y - self.y*parallax) 
 
 # Specialized types of groups
-class Scene(SpriteGroup):
+class Scene(Sprite):
     def __init__(self):
         super(Scene, self).__init__()
+
+        self.view_rect = Rect(
+            0, 0, 
+            sgl.get_width(), sgl.get_height()
+        )
 
         self.camera = Camera()
 
     def add(self, sprite):
         sprite.scene = self
         super(Scene, self).add(sprite)
-
-class CompositeSprite(SpriteGroup):
-    def __init__(self, graphic=None):
-        super(Scene, self).__init__(graphic)
 
 if __name__ == "__main__":
     # sgl.init(320, 240, 2)
@@ -364,17 +361,18 @@ if __name__ == "__main__":
             super(TestScene, self).__init__()
 
             surface = sgl.make_surface(sgl.get_width(), 
-                                       sgl.get_height())
-            with sgl.with_buffer(surface):
-                sgl.clear(0)
+                                       sgl.get_height(), 
+                                       0)
             blackness = Sprite(surface)
             blackness.parallax = 3
 
             self.add(blackness)
             self.add(AnimatedCircleThingy())
+
             self.add(self.make_field(0.75, 1.5))
             self.add(self.make_field(0.85, 1.25))
             self.add(self.make_field(1.0, 1.0))
+
             self.add(CircleThingy(0.25, 0.75))
             self.add(CircleThingy(0.00, 0.50))
             self.add(CircleThingy(0.75, 0.25))
