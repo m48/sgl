@@ -100,13 +100,38 @@ class Parser():
 
         return self.prev_char == "\n"
 
+    def at_content_beginning(self):
+        """ Returns if we're at the beginning of the content of the line. """
+
+        position = self.position-1
+        line = ""
+
+        # Go backwards until we find the last newline
+        while position > 0:
+            char = self.text[position]
+            if char == "\n": 
+                break
+            elif char in (" ", "\t"):
+                position -= 1
+            # If we find a non-whitespace character, fail
+            else:
+                return False
+            
+        # Otherwise succeed
+        return True
+
     def error(self, text):
         """ Raises an error and shows the current position
         and stuff. """
 
+        print self.text[:self.position+1]
         format_string = "pos: {} char: '{}'  \"{}\""
         print format_string.format(self.position, self.char, text)
         raise ParserError(text, self.line, self.col)
+
+    def at_literal(self):
+        return (self.char == "\"" or self.char == "'" or
+                self.char.isdigit() or self.char == "-")
 
     def literal(self):
         """ Reads any arbitrary value. """
@@ -166,21 +191,19 @@ class Parser():
             self.error("symbols cannot begin with \"s")
 
         result = ""
-        while self.char not in ["\n", " ", "[", "]", "="]:
+        while self.char not in ["\n", " ", "[", "]", "=", ";"]:
             result += self.char
             self.next()
         return result
 
-    def whitespace(self):
+    def whitespace(self, allow_newline=True):
         """ Eats all whitespace. """
 
-        while self.char in [" ", "\t"]:
-            self.next()
+        items = [" ", "\t"]
+        if allow_newline:
+            items.append("\n")
 
-    def whitespace_and_newline(self):
-        """ Eats all whitespace and newlines. """
-
-        while self.char in [" ", "\t", "\n"]:
+        while self.char in items:
             self.next()
 
     def newline(self):
@@ -202,7 +225,9 @@ class Parser():
             line += self.text[position]
             position += 1
 
-        return line.strip() == ""
+        line = line.strip()
+
+        return line == "" or line.startswith(";;")
 
 class MacroError(Exception):
     def __init__(self, text):
@@ -240,6 +265,9 @@ class BodyParser(Parser):
             if begin not in self.macro_beginnings:
                 self.macro_beginnings.append(begin)
 
+    def at_comment(self):
+        return self.char == ";" and self.next_char == ";"
+
     def parse(self):
         result = []
         last_paragraph_blank = True
@@ -261,7 +289,7 @@ class BodyParser(Parser):
             # Handle comments. Not sure about the syntax for this.
             # For now I'm using Lisp style comments, except you need
             # two ;s instead of one.
-            if self.char == ";" and self.next_char == ";":
+            if self.at_comment():
                 self.read_to_end_of_line()
                 continue
 
@@ -275,7 +303,7 @@ class BodyParser(Parser):
                 if self.line_empty():
                     # Eat up whatever excessive amount of blank space
                     # I've put in between my paragraphs :|
-                    self.whitespace_and_newline()
+                    self.whitespace()
 
                     # If the previous paragraph actually has anything
                     # in it, replace the newlines with a 'paragraph'
@@ -332,20 +360,50 @@ class BodyParser(Parser):
 
             # If it's not any of those things, it has to be dialogue!
             else:
+                at_content_beginning = self.at_content_beginning()
+
                 # Get text, stopping for commands and macros
                 text = self.prose()
 
                 # If text is more than stupid whitespace, put it on
+
+                # If you want to allow whitespace within command
+                # blocks, use this condition:
+
+                # if text.strip() != "" or not last_paragraph_blank:
+
+                # Work on configuration, to make this an option
                 if text.strip() != "":
                     # If the last thing is a string, just add it to
                     # that one. That way we don't end up with
                     # awkwardly divided text blocks.
                     if len(result) > 0 and is_string(result[-1]):
+                        # If we're at the beginning of the line, and
+                        # there's no space at the end of the last
+                        # block of text
+                        if (at_content_beginning and
+                            not result[-1][-1].isspace()):
+                            result[-1] += " "
                         result[-1] += text
 
                     # If not, just add it normally
                     else:
-                        result.append(text)
+                        # If at the beginning of this paragraph, just
+                        # add text
+                        if last_paragraph_blank:
+                            result.append(text)
+
+                        # Is at beginning of line, add with space
+                        elif (at_content_beginning and 
+                            not text[0].isspace()):
+                            result.append(" " + text)
+
+                        # Otherwise just add (yes the conditions have
+                        # to be like this for it to work. I can't
+                        # think of a better way to organize this for
+                        # now)
+                        else:
+                            result.append(text)                            
 
                     # Mark the last paragraph as actually having stuff
                     last_paragraph_blank = False
@@ -374,12 +432,16 @@ class BodyParser(Parser):
 
         # handle positional arguments
         while self.char != "]":
+            if self.at_comment():
+                self.read_to_end_of_line()
+                self.whitespace()
+                continue
+
             # get value
 
             # don't let string literals or numbers become keys
             # for the key arguments
-            if (self.char == "\"" or self.char == "'" or
-                self.char.isdigit() or self.char == "-"):
+            if self.at_literal():
                 bad_key = True
             else:
                 bad_key = False
@@ -420,6 +482,11 @@ class BodyParser(Parser):
             # go to next
             self.whitespace()
 
+            if self.at_comment():
+                self.read_to_end_of_line()
+                self.whitespace()
+                continue
+
         return pos_args, key_args
 
     def prose(self):
@@ -427,6 +494,9 @@ class BodyParser(Parser):
 
         # While we are still even in the document
         while (self.position_valid() and self.char != "\n"):
+            if self.at_comment():
+                self.read_to_end_of_line()
+                continue
 
             # If we are not escaping anything
             if self.prev_char != "\\":
@@ -480,7 +550,7 @@ class ScriptParser(Parser):
 
     def parse(self):
         # Read header
-        self.whitespace_and_newline()
+        self.whitespace()
         self.header()
 
         # Read labels
@@ -524,7 +594,7 @@ class ScriptParser(Parser):
         # Retrieve label name
         self.eat("@")
         name = self.symbol()
-        self.whitespace()
+        self.whitespace(False)
         self.newline()
 
         # Read and parse body
@@ -554,15 +624,34 @@ if __name__ == "__main__":
 
 @test
    [fade-in]
-
+   ;; test
    Hello there.[pause stuff=1] This...=02 is a test.[pause]
+    ;; safsag
 
    ;; play some music and stuff
-   [play-music 'bob\\'s cool.xm' loop=no]
+   [play-music;; command
+    'bob\\'s cool.xm' ;; lol
+    ;; asfasfasf
+    loop=no;; lol2
+    ] ;; safasgd
+    ;; dsfsf
    [oth-stuff][hahaa]
 
    ;; do other stuff
-   Wheeeeeeeeeeeeeeeeee[pause]
+   Wheeeeeeeeeeeeeeeeee[pause];;fsafas
+
+    ;; test
+    [person] 
+    [background]
+
+    I really like[shake] [stuff] cheese
+
+
+    hi
+    there.=01
+    im cool
+
+    lol
 
 @hi
 
@@ -594,3 +683,5 @@ sdgsdg
             print "TEXT: \"" + str(line) + "\""
         else:
             print "CMND: " + str(line)
+            if line.name == "paragraph":
+                print ""
