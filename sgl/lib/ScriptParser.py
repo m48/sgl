@@ -1,3 +1,9 @@
+# To do:
+# Parser settings
+# Allow, like, [fade in] instead of [fade in: ]
+# Get line numbers working correctly
+# Allow comments in header
+
 def is_string(thing):
     """ Returns whether `thing` is a string or not. """
 
@@ -5,7 +11,6 @@ def is_string(thing):
         return isinstance(thing, str)
     else:
         return isinstance(thing, basestring)
-
 
 class ParserError(Exception):
     def __init__(self, text, line, char):
@@ -124,9 +129,14 @@ class Parser():
         """ Raises an error and shows the current position
         and stuff. """
 
-        print self.text[:self.position+1]
-        format_string = "pos: {} char: '{}'  \"{}\""
-        print format_string.format(self.position, self.char, text)
+        end = self.position+1
+        start = self.text.rfind("\n", 0, end)
+        if start == -1: start = 0
+        print self.text[start:end]
+
+        format_string = "line: {} pos: {} char: '{}'\nerror: \"{}\""
+        print format_string.format(self.line, self.position, self.char, text)
+
         raise ParserError(text, self.line, self.col)
 
     def at_literal(self):
@@ -194,7 +204,7 @@ class Parser():
         while self.char not in ["\n", " ", "[", "]", "=", ";"]:
             result += self.char
             self.next()
-        return result
+        return result.lower()
 
     def whitespace(self, allow_newline=True):
         """ Eats all whitespace. """
@@ -393,7 +403,7 @@ class BodyParser(Parser):
                         if last_paragraph_blank:
                             result.append(text)
 
-                        # Is at beginning of line, add with space
+                        # If at beginning of line, add with space
                         elif (at_content_beginning and 
                             not text[0].isspace()):
                             result.append(" " + text)
@@ -410,6 +420,45 @@ class BodyParser(Parser):
 
         return result
 
+    def has_colon(self):
+        """  """
+
+        position = self.position
+        line = ""
+        limit = 300
+        if position+limit < len(self.text)-1:
+            end = position+limit
+        else:
+            end = len(self.text)-1
+
+        while position < end:
+            if self.text[position] in ("\"", "\'", "=", "]", ";"): 
+                return False
+            elif self.text[position] == ":":
+                return True
+
+            position += 1
+
+        return False
+
+    def pretty_symbol(self):
+        """ """
+
+        if self.char.isdigit() or self.char == "-":
+            self.error("symbols cannot begin with digits or -s")
+        elif self.char == "\"":
+            self.error("symbols cannot begin with \"s")
+
+        result = ""
+        while self.char not in ["[", "]", "=", ":", ";"]:
+            result += self.char
+            self.next()
+
+        self.eat(":")
+        self.whitespace()
+
+        return result.lower().replace(" ", "-")
+        
     def command(self):
         self.eat("[")
 
@@ -417,71 +466,134 @@ class BodyParser(Parser):
         self.whitespace()
 
         # Get command name
-        name = self.symbol()
+        if self.has_colon(): 
+            name = self.pretty_symbol()
+            pretty = True
+        else: 
+            name = self.symbol()
+            pretty = False
         self.whitespace()
 
         # Everything else is arguments
-        pos_args, key_args = self.arguments()
+        pos_args, key_args = self.arguments(pretty)
         self.next()
 
         return Command(name, pos_args, key_args)
 
-    def arguments(self):
+    def arguments(self, pretty=False):
         pos_args = []
         key_args = {}
 
-        # handle positional arguments
+        # Handle positional arguments
         while self.char != "]":
+            # Handle comments
             if self.at_comment():
                 self.read_to_end_of_line()
                 self.whitespace()
                 continue
 
-            # get value
+            # Get value
 
-            # don't let string literals or numbers become keys
-            # for the key arguments
+            # Mark values that are string literals (starting with ")
+            # or numbers, so that they do not become "keys" for the
+            # keyword arguments
             if self.at_literal():
                 bad_key = True
-            else:
-                bad_key = False
 
-            # actually get the value
+            # If the current value is a normal identifier,
+            # do special logic
+            else:
+
+                # If this is a pretty style key (e.g., a
+                # colon is coming up), get that symbol and move on
+                if self.has_colon():
+                    first_key = self.pretty_symbol()
+                    pretty = True
+                    break
+
+                # Otherwise, say this is okay to use as a key
+                # (You know, I could just do this the same way as the
+                # pretty symbols and save some code...)
+                else:
+                    bad_key = False
+
+            # Get the positional value
             item = self.literal()
             pos_args.append(item)
 
-            # go to next
+            # Move on to the next value
             self.whitespace()
 
-            # if next thingy is equals sign, we are starting key args
+            # If we are now at an equals sign, it means we must switch
+            # to parsing keyword arguments
             if self.char == "=":
+
+                # To do this, the last value must not be a string or
+                # number literal
                 if bad_key:
                     self.error("Key for key args must be symbol")
+
+                # If it's okay, use the last parsed positional
+                # argument as the name of the first keyword argument
                 else:
                     first_key = pos_args.pop()
                     break
+            
+            if self.char == "[":
+                self.error("Cannot nest commands")
 
-        # handle key arguments
+        # Handle keyword arguments
         while self.char != "]":
-            # get key
+            # Get the key name
+
+            # If the first key is prespecified, use that
             if first_key:
                 key = first_key
                 first_key = ""
+
+                # For old-style keyword arguments, we need to eat up
+                # the equal sign after this
+                if not pretty:
+                    self.whitespace()
+                    self.eat("=")
+                    self.whitespace()
+    
+            # If we're in the middle, we have to parse stuff
             else:
-                key = self.symbol()
+                # If a colon is coming up, get it new style
+                if self.has_colon():
+                    key = self.pretty_symbol()
 
-            # get equals sign
-            self.whitespace()
-            self.eat("=")
-            self.whitespace()
+                    if not pretty:
+                        self.position -= 1
+                        self.error("Do not mix pretty and not pretty styles")
 
-            # get value
+                # Otherwise it's the old style
+                else:
+                    # Gets the key name
+                    key = self.symbol()
+
+                    # Get the equals sign. Do some extra logic to
+                    # prevent users from mixing old and new style
+                    # commands (technically this works fine, but I
+                    # might deprecate the old-style later)
+                    self.whitespace()
+                    if not pretty:
+                        self.eat("=")
+                    else:
+                        if self.char == "=":
+                            self.error("Do not mix pretty and not pretty styles")
+                        self.error("Parameter specified without value")
+                    self.whitespace()
+
+            # Get the keyword argument's value
             value = self.literal()
             key_args[key] = value
 
-            # go to next
+            # Go on to the next one
             self.whitespace()
 
+            # Handle comments
             if self.at_comment():
                 self.read_to_end_of_line()
                 self.whitespace()
@@ -619,14 +731,19 @@ class ScriptParser(Parser):
        
 if __name__ == "__main__":
     text = """
-[define-macro "=01" "[wait 1]"]
-[define-macro "=02" "[wait 2]"]
+[define macro: "=01" "[wait 1]"]
+[define macro: "=02" "[wait 2]"]
 
 @test
    [fade-in]
    ;; test
-   Hello there.[pause stuff=1] This...=02 is a test.[pause]
-    ;; safsag
+   Hello there.
+   [pause hi stuff=1 other-stuff="hi there"]
+   [pause: 
+    other stuff: "hi there" 
+    stuff: 1] 
+   This...=02 is a test.[pause]
+   ;; safsag
 
    ;; play some music and stuff
    [play-music;; command
@@ -635,6 +752,15 @@ if __name__ == "__main__":
     loop=no;; lol2
     ] ;; safasgd
     ;; dsfsf
+
+   ;; play some music and stuff
+   [play music: ;; command
+    'bob\\'s cool.xm' ;; lol
+    ;; asfasfasf
+    loop: no;; lol2
+    ] ;; safasgd
+    ;; dsfsf
+
    [oth-stuff][hahaa]
 
    ;; do other stuff
