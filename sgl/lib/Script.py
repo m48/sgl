@@ -47,6 +47,7 @@ class ScriptInterpreter:
 
             if hasattr(item, "_commands"):
                 for command in item._commands:
+                    command = command.replace(" ", "-")
                     if command in self.commands:
                         raise CommandCollisionError(command)
                     else:
@@ -159,39 +160,43 @@ class ScriptInterpreter:
 
 if __name__ == "__main__":
     text = """
-[define-macro "=01" "[wait 1]"]
-[define-macro "=02" "[wait 2]"]
-[define-macro "/01" "[speed 1]"]
-[define-macro "/02" "[speed 2]"]
-[define-macro "/05" "[speed 5]"]
+[use pretty commands: yes]
+
+[define macro: "=01" "[wait: 1]"]
+[define macro: "=02" "[wait: 2]"]
+[define macro: "/01" "[speed: 1]"]
+[define macro: "/02" "[speed: 2]"]
+[define macro: "/05" "[speed: 5]"]
 
 @test
-   [fade-in]
+   [fade in]
 
    ;; play some music and stuff
-   [play-music "bob's cool.xm" loop=yes]
+   [play music: "bob's cool.xm" loop: yes]
 
    /01
    Hello there.=02/02 This...=01 is a test.=02
-   /01 A =01/05cool /01=01test.[pause]
-   ;;[goto-prev fade-in]
-    [goto-next speed]
+   /01 A =01/05cool /01=01test.
+
+   [goto next: "speed"]
 
    ;; play some music and stuff
-   [play-music "bob's cool.xm" loop=no]
+   [play music: "bob's cool.xm" loop: no]
 
    ;; do other stuff
-   /01Wheeeeeeeeeeeeeeeeee[goto hi]
+   /01Wheeeeeeeeeeeeeeeeee
+
+   [goto: "hi"]
 
 @hi
-   /02eeeeeeeeeeeeeeeeeee[pause]
+   /02eeeeeeeeeeeeeeeeeee
 
-    [goto test2]
+    [goto: "test2"]
 
 @test2
-   test2[pause]
+   test2
 
-    [goto test]
+   [goto: "test"]
 
 @sdgsdg
    sdgsdg
@@ -211,7 +216,9 @@ if __name__ == "__main__":
             self.speed = new_speed
 
         @script_command("paragraph")
-        def p(self):
+        def p(self, interpreter):
+            interpreter.pause()
+            raw_input("(PRESS ENTER)")
             print " "
 
         def add(self, text, interpreter):
@@ -220,11 +227,11 @@ if __name__ == "__main__":
                 time.sleep(self.speed/float(30))
 
     class Graphics:
-        @script_command("fade-in", "fdin")
+        @script_command("fade in", "fdin")
         def fade_in(self, interpreter):
             print "(FADING IN)"
 
-        @script_command("play-music")
+        @script_command("play music")
         def play_music(self, filename, loop="no"):
             loop = True if loop == "yes" else False
             if loop:
@@ -246,11 +253,11 @@ if __name__ == "__main__":
         def goto(self, label, interpreter):
             interpreter.goto_label(label)
 
-        @script_command("goto-prev")
+        @script_command("goto prev")
         def goto_prev(self, name, interpreter):
             interpreter.goto_prev(name)
 
-        @script_command("goto-next")
+        @script_command("goto next")
         def goto_next(self, name, interpreter):
             interpreter.goto_next(name)
 
