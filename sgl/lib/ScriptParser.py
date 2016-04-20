@@ -1,8 +1,5 @@
 # To do:
-# Parser settings
-# Allow, like, [fade in] instead of [fade in: ]
 # Get line numbers working correctly
-# Allow comments in header
 
 def is_string(thing):
     """ Returns whether `thing` is a string or not. """
@@ -45,7 +42,10 @@ class Command():
         return result
 
 class Parser():
-    def __init__(self, text):
+    def __init__(self, text=""):
+        if text: self.load_text(text)
+
+    def load_text(self, text):
         self.text = text
         self.position = 0
         self.line = 0
@@ -239,12 +239,29 @@ class Parser():
 
         return line == "" or line.startswith(";;")
 
+class ParserSettings(object):
+    # A dictionary of macros and replacement text
+    macros = {}
+
+    # Whether whitespace between commands in the middle of a paragraph
+    # is reproduced. By default, it isn't, which can be handy, but
+    # unexpected, since that isn't really how HTML works.
+    use_command_whitespace = False
+
+    # Whether commands with no keyword arguments are interpreted as
+    # pretty commands ot not
+    default_pretty = False
+
+    # Controls paragraph command generation
+    add_paragraphs = True
+    paragraph_name = "paragraph"
+
 class MacroError(Exception):
     def __init__(self, text):
         self.text = text
 
 class BodyParser(Parser):
-    macros = {}
+    settings = ParserSettings()
     macro_beginnings = []
 
     def cache_macro_beginnings(self):
@@ -253,14 +270,14 @@ class BodyParser(Parser):
 
         self.macro_beginnings = []
 
-        for macro in self.macros:
+        for macro in self.settings.macros:
             # If the macro is in itself, escape it. This doesn't
             # prevent you from making infinite circular chains of
             # macros, though, so it's kind of pointless. :|
             # Yes, macros can expand each other. I've unintentionally
             # created a monster here.
-            if macro in self.macros[macro]:
-                self.macros[macro] = self.macros[macro].replace(
+            if macro in self.settings.macros[macro]:
+                self.settings.macros[macro] = self.settings.macros[macro].replace(
                     macro, "\\" + macro)
 
             begin = macro[0]
@@ -321,7 +338,14 @@ class BodyParser(Parser):
                     # paragraphs from being flanked on both sides
                     # with paragraph commands.
                     if result != [] and not last_paragraph_blank:
-                        result.append(Command("paragraph"))
+
+                        # Should this turn off the rest of the
+                        # paragraph logic too? Hmm.
+                        if self.settings.add_paragraphs:
+                            result.append(
+                                Command(self.settings.paragraph_name)
+                            )
+
                         last_paragraph_blank = True
                 
             # Handle commands
@@ -336,7 +360,7 @@ class BodyParser(Parser):
                 macro_used = False
 
                 # Just loop through all the macros :|
-                for macro in self.macros:
+                for macro in self.settings.macros:
                     # If the text from this point onwards contains a
                     # macro...
                     if (self.text[self.position:
@@ -346,7 +370,7 @@ class BodyParser(Parser):
                         #    the macro replacment +
                         #    text after the macro
                         self.text = (self.text[:self.position] + 
-                                     self.macros[macro] + 
+                                     self.settings.macros[macro] + 
                                      self.text[self.position 
                                                + len(macro):])
                         # This text will be parsed as if it were part
@@ -383,7 +407,9 @@ class BodyParser(Parser):
                 # if text.strip() != "" or not last_paragraph_blank:
 
                 # Work on configuration, to make this an option
-                if text.strip() != "":
+                if (text.strip() != "" or 
+                    (self.settings.use_command_whitespace and 
+                     not last_paragraph_blank)):
                     # If the last thing is a string, just add it to
                     # that one. That way we don't end up with
                     # awkwardly divided text blocks.
@@ -454,7 +480,10 @@ class BodyParser(Parser):
             result += self.char
             self.next()
 
-        self.eat(":")
+        if self.char == "]":
+            pass
+        else:
+            self.eat(":")
         self.whitespace()
 
         return result.lower().replace(" ", "-")
@@ -466,7 +495,7 @@ class BodyParser(Parser):
         self.whitespace()
 
         # Get command name
-        if self.has_colon(): 
+        if self.settings.default_pretty or self.has_colon(): 
             name = self.pretty_symbol()
             pretty = True
         else: 
@@ -658,7 +687,10 @@ class HeaderError(Exception):
         self.text = text
 
 class ScriptParser(Parser):
-    macros = {}
+    settings = ParserSettings()
+
+    def reset_settings(self):
+        self.settings = ParserSettings()
 
     def parse(self):
         # Read header
@@ -680,6 +712,8 @@ class ScriptParser(Parser):
     def header(self):
         # Retrieve and parse all text before the first label
         text = self.body()
+        if not text: return
+
         header = BodyParser(text).parse()
 
         for item in header:
@@ -688,10 +722,14 @@ class ScriptParser(Parser):
 
                 # Handle define macro command
                 if item.name in ["defmacro", "define-macro"] and len(item.pos_arg) == 2:
-                    self.macros[item.pos_arg[0]] = item.pos_arg[1]
+                    self.settings.macros[item.pos_arg[0]] = item.pos_arg[1]
+
+                # Handle define macro command
+                elif item.name in ["use-pretty-commands"] and len(item.pos_arg) == 1:
+                    self.settings.default_pretty = (item.pos_arg[0] == "yes")
 
                 # Ignore paragraph commands generated by newlines
-                elif item.name == "paragraph":
+                elif item.name == self.settings.paragraph_name:
                     pass
 
                 # Complain about anything else
@@ -712,7 +750,7 @@ class ScriptParser(Parser):
         # Read and parse body
         body_text = self.body()
         parser = BodyParser(body_text)
-        parser.macros = self.macros
+        parser.settings = self.settings
         body = parser.parse()
 
         # Return object with those in it 
@@ -735,10 +773,10 @@ if __name__ == "__main__":
 [define macro: "=02" "[wait 2]"]
 
 @test
-   [fade-in]
+   [fade in]
    ;; test
    Hello there.
-   [pause hi stuff=1 other-stuff="hi there"]
+   [pause Hi stuff=1 other-stuff="hi there"]
    [pause: 
     other stuff: "hi there" 
     stuff: 1] 
@@ -800,14 +838,38 @@ asgasgasg
 sdgsdg
     """
 
-    parser = ScriptParser(text)
+    text2 = """
+[use pretty commands: yes]
 
-    result = parser.parse()
+@test
+[fade in]
 
-    for line in result["test"].body:
-        if is_string(line):
-            print "TEXT: \"" + str(line) + "\""
-        else:
-            print "CMND: " + str(line)
-            if line.name == "paragraph":
-                print ""
+[background: house outside]
+Hello there. I'm a person.
+
+[Character: Bob]
+Specifically, I'm Bob.
+
+[Character: Bob sad]
+And I'm sad.
+
+Really sad.
+"""
+
+    def display(result):
+        for line in result["test"].body:
+            if is_string(line):
+                print "TEXT: \"" + str(line) + "\""
+            else:
+                print "CMND: " + str(line)
+                if line.name == "paragraph":
+                    print ""
+
+    parser = ScriptParser()
+    parser.load_text(text)
+    display(parser.parse())
+
+    parser.load_text(text2)
+    # parser.settings.default_pretty = True
+    display(parser.parse())
+
