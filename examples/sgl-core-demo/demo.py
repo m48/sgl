@@ -487,7 +487,7 @@ class Game(object):
             y = 22
             for line in self.demo_description_lines:
                 sgl.draw_text(line, x, y)
-                y += sgl.get_text_height("t")-2
+                y += sgl.get_text_height("") + 2
 
         with sgl.with_buffer(self.demo_surface):
             self.demo.draw()

@@ -883,7 +883,8 @@ class Backend:
         return self.gfx_state.font.size(text)[0]
 
     def get_text_height(self, text):
-        return self.gfx_state.font.get_linesize()
+        return self.gfx_state.font.get_ascent()
+        # return self.gfx_state.font.get_linesize()
         # return self.gfx_state.font.get_height()
         # return self.gfx_state.font.size(text)[1]
 
