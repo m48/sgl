@@ -7,9 +7,6 @@ from sgl.lib.Rect import Rect
 
 class Sprite(object):
     def __init__(self, graphic=None):
-        # Loads the graphic
-        self.load_surface(graphic)
-
         # Initialize properties
         # Whether SpriteGroups will call "draw" on this object
         self.visible = True
@@ -55,6 +52,12 @@ class Sprite(object):
 
         # This is the bounding box. Don't change it manually.
         self._rect = Rect()
+
+        # Loads the graphic
+        if graphic: 
+            self.load_surface(graphic)
+        else:
+            self.surface = None
 
     def add(self, sprite):
         sprite.parent = self
@@ -165,6 +168,10 @@ class Sprite(object):
     def draw(self):
         if not self.visible: return
 
+        self.draw_self()
+        self.draw_children()
+
+    def draw_self(self):
         if self.surface:
 
             a_x, a_y = self.real_anchor
@@ -179,6 +186,7 @@ class Sprite(object):
             #     a_x=self.a_x, a_y=self.a_y
             # )
 
+    def draw_children(self):
         for sprite in self.subsprites:
             if self.view_rect:
                 if (sprite.screen_rect.is_in(self.view_rect)):
@@ -293,6 +301,45 @@ class AnimatedSprite(Sprite):
             self.anim_update_frame()
         # maybe awkward that this does not attempt to make up for
         # lost time like sgl.lib.Time does?
+
+class ShapeSprite(Sprite):
+    def __init__(self):
+        super(ShapeSprite, self).__init__()
+        
+        self.no_stroke = False
+        self.stroke_color = 1.0
+        self.stroke_weight = 1
+
+        self.no_fill = False
+        self.fill_color = 0.75
+
+    def draw_shape(self):
+        pass
+
+    def draw(self):
+        with sgl.with_state():
+            if self.no_stroke:
+                sgl.no_stroke()
+            else:
+                sgl.set_stroke(self.stroke_color)
+                sgl.set_stroke_weight(self.stroke_weight)
+
+            if self.no_fill:
+                sgl.no_fill()
+            else:
+                sgl.set_fill(self.fill_color)
+
+            self.draw_shape()
+
+        super(ShapeSprite, self).draw()
+
+class RectSprite(ShapeSprite):
+    def draw_shape(self):
+        sgl.draw_rect(*self.screen_rect.to_tuple())
+
+class EllipseSprite(ShapeSprite):
+    def draw_shape(self):
+        sgl.draw_ellipse(*self.screen_rect.to_tuple())
                 
 # Special object to store camera stuff
 class Camera(object):
@@ -332,46 +379,95 @@ class Scene(Sprite):
         sprite.scene = self
         super(Scene, self).add(sprite)
 
+class Viewport(Sprite):
+    def __init__(self):
+        super(Viewport, self).__init__()
+
+        self.view_rect = Rect()
+
+        self.camera = Camera()
+
+        self._width = 0
+        self._height = 0
+
+    @property
+    def width(self):
+        return self._width
+
+    @width.setter
+    def width(self, value):
+        self._width = value
+        self.view_rect.width = value
+        self.redefine_surface()
+
+    @property
+    def height(self):
+        return self._height
+
+    @width.setter
+    def height(self, value):
+        self._height = value
+        self.view_rect.height = value
+        self.redefine_surface()
+
+    def redefine_surface(self):
+        if self._width and self._height:
+            self.surface = sgl.make_surface(self._width, self._height)
+
+    def add(self, sprite):
+        sprite.scene = self
+        super(Viewport, self).add(sprite)
+
+    def draw(self):
+        if not self.visible: return
+
+        with sgl.with_buffer(self.surface):
+            self.draw_children()
+
+        self.draw_self()
+
+
 if __name__ == "__main__":
     # sgl.init(320, 240, 2)
     sgl.init(640, 480, 1)
     # sgl.init(1280, 720, 1)
 
+    def make_field(scale, parallax):
+        field = RectSprite()
+
+        field.no_fill = True
+        field.stroke_weight = 3
+        field.stroke_color = (1/parallax, 0, 0)
+
+        field.size = (sgl.get_width() * scale, 
+                      sgl.get_height() * scale)
+        field.position = (sgl.get_width() * 0.5, 
+                          sgl.get_height()*0.5)
+        field.anchor = 0.5,0.5
+
+        field.parallax = parallax
+
+        return field
+
     class TestScene(Scene):
-        def make_field(self, scale, parallax):
-            surface = sgl.make_surface(sgl.get_width()*scale, 
-                                       sgl.get_height()*scale)
-
-            with sgl.with_buffer(surface):
-                sgl.no_fill()
-                sgl.set_stroke(1/parallax, 0, 0)
-                sgl.set_stroke_weight(5)
-                sgl.draw_rect(0, 0, 
-                              sgl.get_width(), 
-                              sgl.get_height())
-
-            field = Sprite(surface)
-            field.position = sgl.get_width()*0.5, sgl.get_height()*0.5
-            field.anchor = 0.5,0.5
-            field.parallax = parallax
-
-            return field
-
         def __init__(self):
             super(TestScene, self).__init__()
 
-            surface = sgl.make_surface(sgl.get_width(), 
-                                       sgl.get_height(), 
-                                       0)
-            blackness = Sprite(surface)
+            blackness = RectSprite()
+
+            blackness.no_stroke = True
+            blackness.fill_color = 0
+
+            blackness.size = sgl.get_width(), sgl.get_height()
             blackness.parallax = 3
 
             self.add(blackness)
+
             self.add(AnimatedCircleThingy())
 
-            self.add(self.make_field(0.75, 1.5))
-            self.add(self.make_field(0.85, 1.25))
-            self.add(self.make_field(1.0, 1.0))
+            self.add(make_field(0.75, 1.5))
+            self.add(make_field(0.85, 1.25))
+            self.add(make_field(1.0, 1.0))
 
             self.add(CircleThingy(0.25, 0.75))
             self.add(CircleThingy(0.00, 0.50))

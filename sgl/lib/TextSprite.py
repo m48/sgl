@@ -1,6 +1,6 @@
 import sgl
 from sgl.lib.Rect import Rect
-from sgl.lib.Sprite import Sprite, Scene
+from sgl.lib.Sprite import Sprite, RectSprite, Scene
 import sgl.lib.Time as time
 
 def is_string(thing):
@@ -264,7 +264,14 @@ if __name__ == "__main__":
             self.f = sgl.load_system_font("Arial", 20)
             self.f2 = sgl.load_system_font("Impact", 20)
 
+            self.text_rect = RectSprite()
+
+            self.text_rect.fill_color = 0.25
+
+            self.add(self.text_rect)
+
             self.text = TextSprite()
+
             self.text.position = 32, 32
             self.text.size = 200, 200
 
@@ -279,6 +286,7 @@ if __name__ == "__main__":
             self.add(self.text)
 
             self.text2 = TextSprite()
+
             self.text2.position = 400, 32
             self.text2.size = 200, 200
             self.text2.font = self.f
@@ -286,6 +294,7 @@ if __name__ == "__main__":
             self.add(self.text2)
 
             self.text3 = TextSprite()
+
             self.text3.position = 400, 32+200
             self.text3.size = 200, 40
             self.text3.font = self.f
@@ -356,6 +365,13 @@ if __name__ == "__main__":
 
             self.text.reflow()
 
+            padding = 5
+
+            self.text_rect.x = self.text.x - padding
+            self.text_rect.y = self.text.y - padding
+            self.text_rect.width = self.text.width + padding*2
+            self.text_rect.height = self.text.height + padding*2
+
             if sgl.on_mouse_up():
                 self.use_current_word = not self.use_current_word
                 self.text2.clear()
@@ -370,20 +386,6 @@ if __name__ == "__main__":
 
         def draw(self):
             sgl.clear(0)
-
-            with sgl.with_state():
-                sgl.set_fill(0.25)
-                sgl.set_stroke(1.0)
-
-                padding = 5
-
-                rect = self.text.screen_rect
-                rect.x -= padding
-                rect.y -= padding
-                rect.width += padding*2
-                rect.height += padding*2
-
-                sgl.draw_rect(*rect.to_tuple())
 
             super(TestScene, self).draw()
 
