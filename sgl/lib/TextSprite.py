@@ -1,6 +1,7 @@
 import sgl
 from sgl.lib.Rect import Rect
 from sgl.lib.Sprite import Sprite, Scene
+import sgl.lib.Time as time
 
 def is_string(thing):
     """ Returns whether `thing` is a string or not. """
@@ -101,14 +102,31 @@ class TextSprite(Sprite):
         super(TextSprite, self).__init__()
         self._text = ""
 
-        self.line_spacing = 10
+        self.line_spacing = 0
 
         self.data = [Line()]
 
         self.font = None
         self.color = (1.0,)
 
-        self.draw_debug = True
+        self.draw_debug = False
+
+        self.actual_word_box = None
+
+        self.wrap_chars = (' ', '-')
+
+        self.set_line_height = 0
+
+    @property
+    def actual_current_word(self):
+        if self.actual_word_box:
+            return self.actual_word_box.text
+        else:
+            return ""
+
+    @actual_current_word.setter
+    def actual_current_word(self, value):
+        self.actual_word_box = Block(self.font, self.color, value)
 
     @property
     def last_line(self):
@@ -118,22 +136,52 @@ class TextSprite(Sprite):
         self.data.append(Line())
 
     def add_block(self, block):
-        if not self.can_handle_block(block):
-            self.new_line()
-
         last_item = self.last_line.last_item
+
+        if not self.can_handle_block(block):
+            if (last_item and 
+                last_item.text and 
+                last_item.text[-1] in self.wrap_chars):
+                self.new_line()
+                last_item = self.last_line.last_item
+            elif not last_item:
+                pass
+            elif not self.actual_current_word:
+                split_point = last_item.text.rfind(self.wrap_chars[0])+1
+                before = last_item.text[:split_point]
+                after = last_item.text[split_point:]
+
+                last_item.text = before
+                new_block = Block(*last_item.style, text=after)
+
+                self.new_line()
+                self.last_line.add(new_block)
+
+                last_item = self.last_line.last_item
+
         if last_item and last_item.style == block.style:
             last_item.text += block.text
         else:
             self.last_line.add(block)
+
+
         
     def can_handle_block(self, block):
-        total_width = self.last_line.width + block.width
-        return total_width < self.width
+        if self.actual_current_word:
+            return self.last_line.width + self.actual_word_box.width < self.width
+        else:
+            total_width = self.last_line.width + block.width
+            return total_width < self.width
 
-    def reflow(self):
-        data = self.data[:]
-        self.clear()
+    def reflow(self, start_line=0):
+        if self.width == 0: return
+
+        if start_line == 0:
+            data = self.data[:]
+            self.clear()
+        else:
+            data = self.data[start_line:]
+            del self.data[start_line:]
 
         for line in data:
             for block in line.items:
@@ -153,13 +201,12 @@ class TextSprite(Sprite):
             return
 
         result = ""
-        wrap_chars = (' ', '-')
         special_chars = ('\n',)
-        watch_chars = wrap_chars + special_chars
+        watch_chars = self.wrap_chars + special_chars
 
         # Helps us avoid dealing with trailing words
-        if text[-1] not in wrap_chars:
-            text += wrap_chars[0]
+        if text[-1] not in self.wrap_chars:
+            text += self.wrap_chars[0]
             last_char_fake = True
         else:
             last_char_fake = False
@@ -187,7 +234,10 @@ class TextSprite(Sprite):
         y = 0
         for line in self.data:
             line.draw(self.screen_x, self.screen_y + y, self.draw_debug)
-            y += line.height + self.line_spacing
+            if self.set_line_height:
+                y += self.set_line_height + self.line_spacing
+            else:
+                y += line.height + self.line_spacing
 
         if self.draw_debug:
             with sgl.with_state():
@@ -204,33 +254,94 @@ if __name__ == "__main__":
         def __init__(self):
             super(TestScene, self).__init__()
 
-            surface = sgl.make_surface(sgl.get_width(), 
-                                       sgl.get_height(), 
-                                       0)
-            bg = Sprite(surface)
+            # surface = sgl.make_surface(sgl.get_width(), 
+            #                            sgl.get_height(), 
+            #                            0)
+            # bg = Sprite(surface)
 
-            self.add(bg)
+            # self.add(bg)
 
-            f = sgl.load_system_font("Arial", 20)
-            f2 = sgl.load_system_font("Arial Black", 20)
+            self.f = sgl.load_system_font("Arial", 20)
+            self.f2 = sgl.load_system_font("Impact", 20)
 
             self.text = TextSprite()
             self.text.position = 32, 32
             self.text.size = 200, 200
-            self.text.line_spacing = 0
 
-            self.text.font = f
+            self.text.font = self.f
             self.text.color = 1.0
             self.text.add_text("Hello there. This is really cool and stuff, I like cheese and stuff.\n\nYeah ")
 
-            self.text.font = f2
-            self.text.color = (0.5,)
-            self.text.add_text("no really and stuff.")            
+            self.text.font = self.f2
+            self.text.color = 0.5
+            self.text.add_text("no really and stuff.")
 
             self.add(self.text)
 
+            self.text2 = TextSprite()
+            self.text2.position = 400, 32
+            self.text2.size = 200, 200
+            self.text2.font = self.f
+ 
+            self.add(self.text2)
+
+            self.text3 = TextSprite()
+            self.text3.position = 400, 32+200
+            self.text3.size = 200, 40
+            self.text3.font = self.f
+
+            self.add(self.text3)
+
+            self.message = "In this world, there are a lot of things we don't understand. In particular, the best way to pull off a stupid algorithm like this one."
+            self.index = 0
+            self.use_current_word = False
+
+            time.at_fps(30, self.update_typing)
+
+        def update_typing(self):
+            if self.index < len(self.message):
+                if self.index < self.message.find(". ")+1:
+                    self.text2.color = 1.0
+                    # self.text2.font = self.f
+                else:
+                    self.text2.color = 0.75
+                    # Changing the font mid-typing causes the line
+                    # height to shift, which looks ugly, so I
+                    # commented it out. Not really sure how to fix
+                    # this practically.
+
+                    # self.text2.font = self.f2    
+
+                if self.use_current_word:
+                    start = self.message.rfind(" ", 0, self.index)+1
+
+                    end = self.message.find(" ", self.index)+1
+                    if end == 0: end = len(self.message)-1
+
+                    current_word = self.message[start:end]
+
+                    self.text2.actual_current_word = current_word
+                    self.text2.add_text(self.message[self.index])
+
+                    self.text3.clear()
+                    self.text3.color = 1.0
+                    self.text3.add_text(self.text2.actual_current_word)
+                    self.text3.color = 0.5
+                    self.text3.add_text(" ({}, {})".format(start, end))
+
+                else:
+                    self.text2.actual_current_word = ""
+                    self.text2.add_text(self.message[self.index])
+
+                    self.text3.clear()
+                    self.text3.color = 0.5
+                    self.text3.add_text("Not using current word feature")
+                
+                self.index += 1
+
         def update(self):
             super(TestScene, self).update()
+            time.update(sgl.get_dt())
 
             x = sgl.get_mouse_x()
             y = sgl.get_mouse_y()
@@ -244,6 +355,38 @@ if __name__ == "__main__":
                 self.text.size = 0, 0
 
             self.text.reflow()
+
+            if sgl.on_mouse_up():
+                self.use_current_word = not self.use_current_word
+                self.text2.clear()
+                self.index = 0
+
+            if sgl.on_key_up(sgl.key.space):
+                self.text.draw_debug = not self.text.draw_debug
+                self.text2.draw_debug = not self.text2.draw_debug
+                self.text3.draw_debug = not self.text3.draw_debug
+
+            sgl.set_title("FPS: " + str(sgl.get_fps()))
+
+        def draw(self):
+            sgl.clear(0)
+
+            with sgl.with_state():
+                sgl.set_fill(0.25)
+                sgl.set_stroke(1.0)
+
+                padding = 5
+
+                rect = self.text.screen_rect
+                rect.x -= padding
+                rect.y -= padding
+                rect.width += padding*2
+                rect.height += padding*2
+
+                sgl.draw_rect(*rect.to_tuple())
+
+            super(TestScene, self).draw()
+
 
     scene = TestScene()
 
