@@ -3,22 +3,40 @@ from sgl.lib.Rect import Rect
 from sgl.lib.Sprite import Sprite, EllipseSprite, RectSprite, Scene
 import sgl.lib.Time as time
 
-class HorizontalFlow(Sprite):
-    def __init__(self):
-        super(HorizontalFlow, self).__init__()
+class FlowLayout(Sprite):
+    def __init__(self, horizontal=False):
+        super(FlowLayout, self).__init__()
 
         self.spacing = 0
         self.size = 0,0
 
+        self._horizontal = horizontal
+
         self.has_stretchy = False
         self.draw_debug = True
 
+    @property
+    def horizontal(self):
+        return self._horizontal
+
+    @horizontal.setter
+    def horizontal(self, value):
+        self._horizontal = value
+
+        for sprite in self.subsprites:
+            sprite.width = sprite.original_width
+            sprite.height = sprite.original_height
+
     def add(self, sprite, proportion=0.0, 
             proportion_other_way=False, align=0.0):
-        super(HorizontalFlow, self).add(sprite)
+        super(FlowLayout, self).add(sprite)
         sprite.flow_proportion = proportion
         sprite.flow_other_proportion = proportion_other_way
         sprite.flow_align = align
+        
+        sprite.original_width = sprite.width
+        sprite.original_height = sprite.height
+
         if proportion: self.has_stretchy = True
         self.reflow()
 
@@ -27,8 +45,11 @@ class HorizontalFlow(Sprite):
         self.has_stretchy = False
 
     def reflow(self):
+        self_size = self.width if self.horizontal else self.height
+        self_other_size = self.height if self.horizontal else self.width
+
         if self.has_stretchy:
-            total_width = 0
+            total_size = 0
             stretchy_total = 0
             stretchy_amount = 0
             last_stretchy = None
@@ -39,38 +60,64 @@ class HorizontalFlow(Sprite):
                     stretchy_amount += 1
                     last_stretchy = sprite
                 else:
-                    total_width += sprite.width + self.spacing
+                    total_size += (sprite.width if self.horizontal else sprite.height) + self.spacing
 
-            leftover = (self.width - total_width)
+            leftover = (self_size - total_size)
             if leftover < 0: leftover = 0
                
-        x = 0
+        offset = 0
         for sprite in self.subsprites:
-            sprite.x = int(x)
-            width = sprite.width
+            if self.horizontal:
+                sprite.x = int(offset)
+            else:
+                sprite.y = int(offset)
 
+            size = sprite.width if self.horizontal else sprite.height
+            other_size = sprite.height if self.horizontal else sprite.width
+    
             if sprite.flow_proportion:
-                width = (
+                size = (
                     (leftover / stretchy_total) 
                     * sprite.flow_proportion
                 ) 
                 if self.spacing:
-                    width -= (self.spacing - 
-                              (self.spacing/stretchy_amount))
-                if width < 0: width = 0
-                sprite.width = int(width)
+                    size -= (self.spacing - 
+                             (self.spacing/stretchy_amount))
+                if size < 0: size = 0
+
+                if self.horizontal:
+                    sprite.width = int(size)
+                else:
+                    sprite.height = int(size)
 
             if sprite.flow_other_proportion:
-                sprite.height = int(self.height * sprite.flow_other_proportion)
+                if self.horizontal:
+                    sprite.height = int(self.height * sprite.flow_other_proportion)
+                else:
+                    sprite.width = int(self.width * sprite.flow_other_proportion)
 
             if sprite.flow_align:
-                sprite.y = int(self.height * sprite.flow_align - sprite.height * sprite.flow_align)
-                if sprite.y < 0: sprite.y = 0
-                
-            x += width + self.spacing
+                other_offset = (
+                    self_other_size * sprite.flow_align
+                    - other_size * sprite.flow_align
+                )
+
+                if self.horizontal:
+                    sprite.y = int(other_offset)
+                    if sprite.y < 0: sprite.y = 0
+                else:
+                    sprite.x = int(other_offset)
+                    if sprite.x < 0: sprite.x = 0
+            else:
+                if self.horizontal:
+                    sprite.y = 0
+                else:
+                    sprite.x = 0
+    
+            offset += size + self.spacing
             
     def draw(self):
-        super(HorizontalFlow, self).draw()
+        super(FlowLayout, self).draw()
 
         with sgl.with_state():
             sgl.no_fill()
@@ -113,8 +160,7 @@ if __name__ == "__main__":
 
             self.add(blackness)
 
-
-            self.flow = HorizontalFlow()
+            self.flow = FlowLayout(False)
 
             self.flow.position = 32,32
             self.flow.size = sgl.get_width()-32-32, 32
@@ -125,7 +171,7 @@ if __name__ == "__main__":
             self.flow.add(make_rect((0, 0.5, 0)), 2.0, 1.0)
             self.flow.add(make_circle(0.5), 0, 0, 1.0)
             self.flow.add(make_rect((0, 0.5, 0)), 1.0, 0.5, 0.5)
-            self.flow.add(make_rect((0, 0.8, 0)), 1.0)
+            self.flow.add(make_rect((0, 0.8, 0)), 1.0, 0, 0)
             # self.flow.add(make_rect((0, 0.8, 0)), 1.0)
             # self.flow.add(make_rect((0, 0.8, 0)), 1.0)
             # self.flow.add(make_rect((0, 0.8, 0)), 1.0)
@@ -154,6 +200,9 @@ if __name__ == "__main__":
                 if self.flow.spacing > 0:
                     self.flow.spacing -= 10 * sgl.get_dt()
                     if self.flow.spacing < 0: self.flow.spacing = 0
+
+            if sgl.on_mouse_up():
+                self.flow.horizontal = not self.flow.horizontal
 
             self.flow.reflow()
 
