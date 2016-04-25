@@ -13,11 +13,18 @@ class HorizontalFlow(Sprite):
         self.has_stretchy = False
         self.draw_debug = True
 
-    def add(self, sprite, proportion=0.0):
+    def add(self, sprite, proportion=0.0, 
+            proportion_other_way=False, align=0.0):
         super(HorizontalFlow, self).add(sprite)
         sprite.flow_proportion = proportion
+        sprite.flow_other_proportion = proportion_other_way
+        sprite.flow_align = align
         if proportion: self.has_stretchy = True
         self.reflow()
+
+    def clear(self):
+        self.subsprites = []
+        self.has_stretchy = False
 
     def reflow(self):
         if self.has_stretchy:
@@ -52,6 +59,13 @@ class HorizontalFlow(Sprite):
                               (self.spacing/stretchy_amount))
                 if width < 0: width = 0
                 sprite.width = int(width)
+
+            if sprite.flow_other_proportion:
+                sprite.height = int(self.height * sprite.flow_other_proportion)
+
+            if sprite.flow_align:
+                sprite.y = int(self.height * sprite.flow_align - sprite.height * sprite.flow_align)
+                if sprite.y < 0: sprite.y = 0
                 
             x += width + self.spacing
             
@@ -99,11 +113,6 @@ if __name__ == "__main__":
 
             self.add(blackness)
 
-            # self.text_rect = RectSprite()
-
-            # self.text_rect.fill_color = 0.25
-
-            # self.add(self.text_rect)
 
             self.flow = HorizontalFlow()
 
@@ -113,9 +122,9 @@ if __name__ == "__main__":
             self.flow.spacing = 5
 
             self.flow.add(make_circle(1.0))
-            self.flow.add(make_rect((0, 0.5, 0)), 2.0)
-            self.flow.add(make_circle(0.5))
-            self.flow.add(make_rect((0, 0.5, 0)), 1.0)
+            self.flow.add(make_rect((0, 0.5, 0)), 2.0, 1.0)
+            self.flow.add(make_circle(0.5), 0, 0, 1.0)
+            self.flow.add(make_rect((0, 0.5, 0)), 1.0, 0.5, 0.5)
             self.flow.add(make_rect((0, 0.8, 0)), 1.0)
             # self.flow.add(make_rect((0, 0.8, 0)), 1.0)
             # self.flow.add(make_rect((0, 0.8, 0)), 1.0)
