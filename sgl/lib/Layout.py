@@ -12,6 +12,8 @@ class FlowLayout(Sprite):
 
         self._horizontal = horizontal
 
+        self.margin = 0
+
         self.has_stretchy = False
         self.draw_debug = True
 
@@ -45,8 +47,8 @@ class FlowLayout(Sprite):
         self.has_stretchy = False
 
     def reflow(self):
-        self_size = self.width if self.horizontal else self.height
-        self_other_size = self.height if self.horizontal else self.width
+        self_size = (self.width if self.horizontal else self.height) - self.margin*2
+        self_other_size = (self.height if self.horizontal else self.width) - self.margin*2
 
         if self.has_stretchy:
             total_size = 0
@@ -65,7 +67,7 @@ class FlowLayout(Sprite):
             leftover = (self_size - total_size)
             if leftover < 0: leftover = 0
                
-        offset = 0
+        offset = self.margin
         for sprite in self.subsprites:
             if self.horizontal:
                 sprite.x = int(offset)
@@ -91,16 +93,18 @@ class FlowLayout(Sprite):
                     sprite.height = int(size)
 
             if sprite.flow_other_proportion:
+                
+
                 if self.horizontal:
-                    sprite.height = int(self.height * sprite.flow_other_proportion)
+                    sprite.height = int(self_other_size * sprite.flow_other_proportion)
                 else:
-                    sprite.width = int(self.width * sprite.flow_other_proportion)
+                    sprite.width = int(self_other_size * sprite.flow_other_proportion)
 
             if sprite.flow_align:
                 other_offset = (
                     self_other_size * sprite.flow_align
                     - other_size * sprite.flow_align
-                )
+                ) + self.margin
 
                 if self.horizontal:
                     sprite.y = int(other_offset)
@@ -110,9 +114,9 @@ class FlowLayout(Sprite):
                     if sprite.x < 0: sprite.x = 0
             else:
                 if self.horizontal:
-                    sprite.y = 0
+                    sprite.y = int(self.margin)
                 else:
-                    sprite.x = 0
+                    sprite.x = int(self.margin)
     
             offset += size + self.spacing
             
@@ -121,6 +125,13 @@ class FlowLayout(Sprite):
 
         with sgl.with_state():
             sgl.no_fill()
+
+            sgl.set_stroke(0, 0.5, 0)
+            sgl.draw_rect(self.x + self.margin,
+                          self.y + self.margin,
+                          self.width - self.margin*2,
+                          self.height - self.margin*2)
+
             sgl.set_stroke(0, 1.0, 0)
             sgl.draw_rect(*self.screen_rect.to_tuple())
 
@@ -194,12 +205,29 @@ if __name__ == "__main__":
             else:
                 self.flow.size = 0, 0
 
-            if sgl.is_key_pressed(sgl.key.right):
+            if sgl.is_key_pressed(sgl.key.right 
+                                  if self.flow.horizontal 
+                                  else sgl.key.down):
                 self.flow.spacing += 10 * sgl.get_dt()
-            if sgl.is_key_pressed(sgl.key.left):
+
+            if sgl.is_key_pressed(sgl.key.left 
+                                  if self.flow.horizontal 
+                                  else sgl.key.up):
                 if self.flow.spacing > 0:
                     self.flow.spacing -= 10 * sgl.get_dt()
                     if self.flow.spacing < 0: self.flow.spacing = 0
+
+            if sgl.is_key_pressed(sgl.key.down 
+                                  if self.flow.horizontal 
+                                  else sgl.key.right):
+                self.flow.margin += 10 * sgl.get_dt()
+
+            if sgl.is_key_pressed(sgl.key.up
+                                  if self.flow.horizontal 
+                                  else sgl.key.left):
+                if self.flow.margin > 0:
+                    self.flow.margin -= 10 * sgl.get_dt()
+                    if self.flow.margin < 0: self.flow.margin = 0
 
             if sgl.on_mouse_up():
                 self.flow.horizontal = not self.flow.horizontal
