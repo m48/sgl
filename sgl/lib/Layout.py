@@ -15,7 +15,7 @@ class FlowLayout(Sprite):
         self.margin = 0
 
         self.has_stretchy = False
-        self.draw_debug = True
+        self.draw_debug = False
 
     @property
     def horizontal(self):
@@ -88,17 +88,21 @@ class FlowLayout(Sprite):
                 if size < 0: size = 0
 
                 if self.horizontal:
-                    sprite.width = int(size)
+                    sprite.width = int(size)+1
                 else:
-                    sprite.height = int(size)
+                    sprite.height = int(size)+1
 
             if sprite.flow_other_proportion:
-                
+                new_size = self_other_size * sprite.flow_other_proportion
 
                 if self.horizontal:
-                    sprite.height = int(self_other_size * sprite.flow_other_proportion)
+                    sprite.height = int(new_size)
                 else:
-                    sprite.width = int(self_other_size * sprite.flow_other_proportion)
+                    sprite.width = int(new_size)
+
+                if (hasattr(sprite, "reflow") 
+                    and hasattr(sprite.reflow, "__call__")):
+                    sprite.reflow()
 
             if sprite.flow_align:
                 other_offset = (
@@ -108,10 +112,12 @@ class FlowLayout(Sprite):
 
                 if self.horizontal:
                     sprite.y = int(other_offset)
-                    if sprite.y < 0: sprite.y = 0
+                    if sprite.y < self.margin: 
+                        sprite.y = int(self.margin)
                 else:
                     sprite.x = int(other_offset)
-                    if sprite.x < 0: sprite.x = 0
+                    if sprite.x < self.margin: 
+                        sprite.x = int(self.margin)
             else:
                 if self.horizontal:
                     sprite.y = int(self.margin)
@@ -122,18 +128,19 @@ class FlowLayout(Sprite):
             
     def draw(self):
         super(FlowLayout, self).draw()
+        
+        if self.draw_debug:
+            with sgl.with_state():
+                sgl.no_fill()
 
-        with sgl.with_state():
-            sgl.no_fill()
+                sgl.set_stroke(0, 0.5, 0)
+                sgl.draw_rect(self.screen_x + self.margin,
+                              self.screen_y + self.margin,
+                              self.width - self.margin*2,
+                              self.height - self.margin*2)
 
-            sgl.set_stroke(0, 0.5, 0)
-            sgl.draw_rect(self.x + self.margin,
-                          self.y + self.margin,
-                          self.width - self.margin*2,
-                          self.height - self.margin*2)
-
-            sgl.set_stroke(0, 1.0, 0)
-            sgl.draw_rect(*self.screen_rect.to_tuple())
+                sgl.set_stroke(0, 1.0, 0)
+                sgl.draw_rect(*self.screen_rect.to_tuple())
 
 if __name__ == "__main__":
     sgl.init(640, 480, 1)
@@ -171,6 +178,15 @@ if __name__ == "__main__":
 
             self.add(blackness)
 
+            self.flow_rect = RectSprite()
+
+            self.flow_rect.size = 0,0
+
+            self.flow_rect.no_stroke = True
+            self.flow_rect.fill_color = 0.25
+
+            self.add(self.flow_rect)
+
             self.flow = FlowLayout(False)
 
             self.flow.position = 32,32
@@ -178,16 +194,37 @@ if __name__ == "__main__":
 
             self.flow.spacing = 5
 
-            self.flow.add(make_circle(1.0))
-            self.flow.add(make_rect((0, 0.5, 0)), 2.0, 1.0)
-            self.flow.add(make_circle(0.5), 0, 0, 1.0)
-            self.flow.add(make_rect((0, 0.5, 0)), 1.0, 0.5, 0.5)
-            self.flow.add(make_rect((0, 0.8, 0)), 1.0, 0, 0)
+            self.flow.add(make_circle(1.0), 0, 0, 0)
+            self.flow.add(make_circle(1.0), 0, 0, 0.75)
+            self.flow.add(make_circle(1.0), 0, 0, 1.00)
+            self.flow.add(make_rect(0.50), 0.25, 0.75, 0.5)
+
+            self.flow2 = FlowLayout(True)
+            self.flow2.size = 50, 200
+
+            self.flow2.add(make_rect(0.75), 1.0, 1.0, 0)            
+            self.flow2.add(make_circle(1.0), 0, 0, 0.5)
+            self.flow2.add(make_circle(1.0), 0, 0, 0.5)
+            self.flow2.add(make_rect(0.75), 1.0, 1.0, 0)
+
+            self.flow.add(self.flow2, 1.0, 1.0, 0)
+
+            # self.flow.add(make_rect(0.75), 1.0, 1.0, 0)
+
+            self.flow.add(make_rect(0.50), 0.25, 0.75, 0.5)
+            self.flow.add(make_circle(1.0), 0, 0, 1.00)
+            self.flow.add(make_circle(1.0), 0, 0, 0.75)
+            self.flow.add(make_circle(1.0), 0, 0, 0)
+
+            # self.flow.add(make_rect((0, 0.5, 0)), 2.0, 1.0)
+            # self.flow.add(make_circle(0.5), 0, 0, 1.0)
+            # self.flow.add(make_rect((0, 0.5, 0)), 1.0, 0.5, 0.5)
+            # self.flow.add(make_rect((0, 0.8, 0)), 1.0, 0, 0)
             # self.flow.add(make_rect((0, 0.8, 0)), 1.0)
             # self.flow.add(make_rect((0, 0.8, 0)), 1.0)
             # self.flow.add(make_rect((0, 0.8, 0)), 1.0)
             # self.flow.add(make_rect((0, 0.8, 0)), 1.0)
-            self.flow.add(make_circle(0.25))
+            # self.flow.add(make_circle(0.25))
 
             self.add(self.flow)
 
@@ -204,6 +241,12 @@ if __name__ == "__main__":
                 self.flow.size = w, h
             else:
                 self.flow.size = 0, 0
+
+            self.flow_rect.position = self.flow.position
+            # for some reason self.flow.size returns (32,32) constantly.
+            # look into this :(
+            # self.flow_rect.size = self.flow.size
+            self.flow_rect.size = self.flow.width, self.flow.height
 
             if sgl.is_key_pressed(sgl.key.right 
                                   if self.flow.horizontal 
@@ -231,6 +274,7 @@ if __name__ == "__main__":
 
             if sgl.on_mouse_up():
                 self.flow.horizontal = not self.flow.horizontal
+                self.flow.reflow()
 
             self.flow.reflow()
 
