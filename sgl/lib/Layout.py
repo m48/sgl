@@ -243,10 +243,7 @@ if __name__ == "__main__":
                 self.flow.size = 0, 0
 
             self.flow_rect.position = self.flow.position
-            # for some reason self.flow.size returns (32,32) constantly.
-            # look into this :(
-            # self.flow_rect.size = self.flow.size
-            self.flow_rect.size = self.flow.width, self.flow.height
+            self.flow_rect.size = self.flow.size
 
             if sgl.is_key_pressed(sgl.key.right 
                                   if self.flow.horizontal 

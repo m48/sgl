@@ -120,7 +120,7 @@ class Sprite(object):
     def size(self):
         return (self.width, self.height)
     
-    @position.setter
+    @size.setter
     def size(self, new_value):
         self.width, self.height = new_value
 
@@ -415,13 +415,13 @@ class Viewport(Sprite):
             self.surface = sgl.make_surface(self._width, self._height)
 
     def add(self, sprite):
-        sprite.scene = self
         super(Viewport, self).add(sprite)
 
     def draw(self):
         if not self.visible: return
 
         with sgl.with_buffer(self.surface):
+            sgl.clear(0, 0)
             self.draw_children()
 
         self.draw_self()
