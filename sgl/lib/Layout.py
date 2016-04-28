@@ -17,6 +17,15 @@ class FlowLayout(Sprite):
         self.has_stretchy = False
         self.draw_debug = False
 
+        # Note: these are not entirely accurate yet. They do not take
+        # into account the size of stretchy elements at the smallest
+        # size to accommodate the non-stretchy elements. I will fix
+        # this later, but for now, keep in mind these are just general
+        # values that will at least prevent your layout from
+        # completely folding in on itself
+        self.min_width = 0
+        self.min_height = 0
+
     @property
     def horizontal(self):
         return self._horizontal
@@ -40,7 +49,6 @@ class FlowLayout(Sprite):
         sprite.original_height = sprite.height
 
         if proportion: self.has_stretchy = True
-        self.reflow()
 
     def clear(self):
         self.subsprites = []
@@ -68,6 +76,8 @@ class FlowLayout(Sprite):
             if leftover < 0: leftover = 0
                
         offset = self.margin
+        total_size = 0
+        total_other_size = 0
         for sprite in self.subsprites:
             if self.horizontal:
                 sprite.x = int(offset)
@@ -89,8 +99,28 @@ class FlowLayout(Sprite):
 
                 if self.horizontal:
                     sprite.width = int(size)+1
+
+                    if hasattr(sprite, "min_width"):
+                        total_size += sprite.min_width
+                    else:
+                        total_size += 1
                 else:
                     sprite.height = int(size)+1
+
+                    if hasattr(sprite, "min_height"):
+                        total_size += sprite.min_height
+                    else:
+                        total_size += 1
+
+                if (hasattr(sprite, "reflow") 
+                    and hasattr(sprite.reflow, "__call__")):
+                    sprite.reflow()
+
+            else:
+                if self.horizontal:
+                    total_size += sprite.width
+                else:
+                    total_size += sprite.height
 
             if sprite.flow_other_proportion:
                 new_size = self_other_size * sprite.flow_other_proportion
@@ -103,6 +133,20 @@ class FlowLayout(Sprite):
                 if (hasattr(sprite, "reflow") 
                     and hasattr(sprite.reflow, "__call__")):
                     sprite.reflow()
+
+                if self.horizontal:
+                    if hasattr(sprite, "min_height"):
+                        total_other_size += sprite.min_height
+                else:
+                    if hasattr(sprite, "min_width"):
+                        total_other_size += sprite.min_width
+            else:
+                if self.horizontal:
+                    if sprite.height > total_other_size:
+                        total_other_size = sprite.height
+                else:
+                    if sprite.width > total_other_size:                    
+                        total_other_size = sprite.width
 
             if sprite.flow_align:
                 other_offset = (
@@ -125,7 +169,15 @@ class FlowLayout(Sprite):
                     sprite.x = int(self.margin)
     
             offset += size + self.spacing
-            
+            total_size += self.spacing
+
+        if self.horizontal:
+            self.min_width = total_size
+            self.min_height = total_other_size
+        else:
+            self.min_height = total_size
+            self.min_width = total_other_size
+    
     def draw(self):
         super(FlowLayout, self).draw()
         
@@ -209,8 +261,6 @@ if __name__ == "__main__":
 
             self.flow.add(self.flow2, 1.0, 1.0, 0)
 
-            # self.flow.add(make_rect(0.75), 1.0, 1.0, 0)
-
             self.flow.add(make_rect(0.50), 0.25, 0.75, 0.5)
             self.flow.add(make_circle(1.0), 0, 0, 1.00)
             self.flow.add(make_circle(1.0), 0, 0, 0.75)
@@ -226,6 +276,8 @@ if __name__ == "__main__":
             # self.flow.add(make_rect((0, 0.8, 0)), 1.0)
             # self.flow.add(make_circle(0.25))
 
+            self.flow.reflow()
+
             self.add(self.flow)
 
         def update(self):
@@ -237,10 +289,15 @@ if __name__ == "__main__":
             w = x - self.flow.x
             h = y - self.flow.y
 
-            if w > 0 and h > 0:
-                self.flow.size = w, h
+            if w > self.flow.min_width +20:
+                self.flow.width = w
             else:
-                self.flow.size = 0, 0
+                self.flow.width = self.flow.min_width+20
+
+            if h > self.flow.min_height:
+                self.flow.height = h
+            else:
+                self.flow.height = self.flow.min_height
 
             self.flow_rect.position = self.flow.position
             self.flow_rect.size = self.flow.size

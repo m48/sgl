@@ -59,6 +59,7 @@ class Menu(Sprite):
 
     def add_item(self, item):
         self.layout.add(item, 0, 1.0)
+        self.layout.reflow()
 
         if self.viewport not in self.subsprites:
             self.add(self.viewport)
