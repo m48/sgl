@@ -49,6 +49,7 @@ class Line(object):
     def __init__(self):
         self.items = []
         self.ends_in_newline = False
+        self.line_height = 0
 
     def draw(self, x, y, debug=False):
         if debug:
@@ -91,6 +92,9 @@ class Line(object):
 
     @property
     def height(self):
+        if self.line_height:
+            return self.line_height
+
         result = 0
         for item in self.items:
             height = item.height
@@ -108,14 +112,15 @@ class TextSprite(Sprite):
 
         self.font = None
         self.color = (1.0,)
+        self.line_height = 0
+        self.auto_height = False
+        self.text_align = 0
 
         self.draw_debug = False
 
         self.actual_word_box = None
 
         self.wrap_chars = (' ', '-')
-
-        self.set_line_height = 0
 
     @property
     def actual_current_word(self):
@@ -134,6 +139,7 @@ class TextSprite(Sprite):
 
     def new_line(self):
         self.data.append(Line())
+        self.last_line.line_height = self.line_height
 
     def add_block(self, block):
         last_item = self.last_line.last_item
@@ -163,8 +169,6 @@ class TextSprite(Sprite):
             last_item.text += block.text
         else:
             self.last_line.add(block)
-
-
         
     def can_handle_block(self, block):
         if self.actual_current_word:
@@ -224,20 +228,22 @@ class TextSprite(Sprite):
                     self.last_line.ends_in_newline = True
                     self.new_line()
 
-    def set_font(self, font):
-        self.font = font
-
-    def set_color(self, color):
-        self.font = font
-
     def draw(self):
+        x = 0
         y = 0
         for line in self.data:
-            line.draw(self.screen_x, self.screen_y + y, self.draw_debug)
-            if self.set_line_height:
-                y += self.set_line_height + self.line_spacing
-            else:
-                y += line.height + self.line_spacing
+            if self.text_align:
+                x = (self.width * self.text_align
+                     - line.width * self.text_align)
+
+            line.draw(self.screen_x + x, self.screen_y + y, self.draw_debug)
+
+            y += line.height + self.line_spacing
+
+        # I would like to do this in one of the add_text functions or
+        # whatever, but right now this seems a lot easier
+        if self.auto_height:
+            self.height = y
 
         if self.draw_debug:
             with sgl.with_state():
@@ -254,12 +260,13 @@ if __name__ == "__main__":
         def __init__(self):
             super(TestScene, self).__init__()
 
-            # surface = sgl.make_surface(sgl.get_width(), 
-            #                            sgl.get_height(), 
-            #                            0)
-            # bg = Sprite(surface)
+            bg = RectSprite()
 
-            # self.add(bg)
+            bg.fill_color = 0
+            bg.no_stroke = True
+            bg.size = sgl.get_width(), sgl.get_height()
+
+            self.add(bg)
 
             self.f = sgl.load_system_font("Arial", 20)
             self.f2 = sgl.load_system_font("Impact", 20)
@@ -290,6 +297,8 @@ if __name__ == "__main__":
             self.text2.position = 400, 32
             self.text2.size = 200, 200
             self.text2.font = self.f
+            self.text2.auto_height = True
+            self.text2.line_height = 25
  
             self.add(self.text2)
 
@@ -298,6 +307,7 @@ if __name__ == "__main__":
             self.text3.position = 400, 32+200
             self.text3.size = 200, 40
             self.text3.font = self.f
+            self.text3.text_align = 0.5
 
             self.add(self.text3)
 
@@ -311,15 +321,10 @@ if __name__ == "__main__":
             if self.index < len(self.message):
                 if self.index < self.message.find(". ")+1:
                     self.text2.color = 1.0
-                    # self.text2.font = self.f
+                    self.text2.font = self.f
                 else:
                     self.text2.color = 0.75
-                    # Changing the font mid-typing causes the line
-                    # height to shift, which looks ugly, so I
-                    # commented it out. Not really sure how to fix
-                    # this practically.
-
-                    # self.text2.font = self.f2    
+                    self.text2.font = self.f2    
 
                 if self.use_current_word:
                     start = self.message.rfind(" ", 0, self.index)+1
@@ -383,12 +388,6 @@ if __name__ == "__main__":
                 self.text3.draw_debug = not self.text3.draw_debug
 
             sgl.set_title("FPS: " + str(sgl.get_fps()))
-
-        def draw(self):
-            sgl.clear(0)
-
-            super(TestScene, self).draw()
-
 
     scene = TestScene()
 
