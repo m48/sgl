@@ -137,6 +137,36 @@ class AlphaDemo():
         sgl.set_fill(1.0)
         sgl.draw_text(text, 8, sgl.get_height() - 3*8) 
 
+class ClipDemo():
+    name = "Clipping rectangles"
+    description = "You can clip rendering, for dirty buffers and other effects! "
+
+    def __init__(self):
+        self.x = 0
+        self.vel = 50
+
+        self.clouds = sgl.load_image("hd-clouds.png")
+        self.smiley = sgl.load_alpha_image("hd-smiley.png")
+
+    def update(self):
+        self.x += self.vel * sgl.get_dt()
+        if self.x > sgl.get_width()-128: self.vel = -self.vel
+        if self.x < 0: self.vel = -self.vel
+    
+        if (sgl.is_key_pressed(sgl.key.up)
+            and self.alpha < 255):
+            self.alpha += 200 * sgl.get_dt()
+
+        if (sgl.is_key_pressed(sgl.key.down)
+            and self.alpha > 0):
+            self.alpha -= 200 * sgl.get_dt()
+
+    def draw(self):
+        sgl.blit(self.clouds, 0, 0)
+        with sgl.with_state():
+            sgl.set_clip_rect(40,40,sgl.get_width()-80,sgl.get_height()-80)
+            sgl.blit(self.smiley, self.x, 8)
+
 class FlipDemo():
     name = "Flip"
     description = "It's very easy to flip graphics in SGL! "
@@ -388,7 +418,7 @@ class Game(object):
         self.demo_surface = sgl.make_surface(320, 167, 0.25)
 
         self.demo = None
-        self.demos = [TestDemo, DrawDemo, DrawDemoAlpha, AlphaDemo, 
+        self.demos = [TestDemo, DrawDemo, DrawDemoAlpha, AlphaDemo, ClipDemo, 
                       FlipDemo, ScaleDemo, RotateDemo, BlendDemo, 
                       MusicDemo]
         self.demo_index = 0 #len(self.demos)-1

@@ -1084,6 +1084,39 @@ def get_height():
 
     return Backend.get_height()
 
+def set_clip_rect(x, y, width, height):
+    """ 
+    set_clip_rect(x, y, width, height)
+
+    Sets the clipping rectangle--makes it so all future rendering
+    operations will only affect the specified rectangle of the current
+    surface.
+    """
+
+    return Backend.set_clip_rect(x, y, width, height)
+
+def no_clip_rect():
+    """ 
+    no_clip_rect()
+
+    Turns off rendering clipping.
+    """
+
+    return Backend.no_clip_rect()
+
+
+def get_clip_rect():
+    """ 
+    get_clip_rect()
+
+    Returns the size of the current clipping rectangle.
+
+    :return: A four element tuple, or None
+    :rtype: tuple
+    """
+
+    return Backend.get_clip_rect()
+
 def invert(surface=None):
     """ 
     invert(surface=None)
