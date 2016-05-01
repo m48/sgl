@@ -15,7 +15,7 @@ class MenuItem(Sprite):
         self.selected = False
         self.selectable = selectable
 
-        self.draw_debug = False
+        self.draw_debug = False # True
 
     def reflow(self):
         pass
@@ -47,6 +47,7 @@ class Menu(Sprite):
         self.interior_margin = 0
         self.spacing = 0
         self.exterior_margin = 0
+        self.scroll_margin = 0
 
         self.animating = False
 
@@ -66,15 +67,69 @@ class Menu(Sprite):
 
         if len(self.items)-1 == self.selected_index:
             if item.selectable:
-                self.set_selection(self.selected_index)
+                # in case camera is moved up
+                self.layout.preupdate()
+                item.preupdate()
+
+                self.set_selection(self.selected_index, system=True)
             else:
                 self.selected_index += 1
 
-    def set_selection(self, new_value):
+    @property
+    def first_visible_index(self):
+        for index, item in enumerate(self.items):
+            if self.items[index].screen_y < 0:
+                pass
+            else:
+                return index
+
+    @property
+    def first_visible_item(self):
+        return self.items[self.first_visible_index]
+
+    @property
+    def last_visible_index(self):
+        last_index = 0
+        for index, item in enumerate(self.items):
+            if self.items[index].screen_y + self.items[index].height > self.viewport.height:
+                break
+            else:
+                last_index = index
+
+        return last_index
+
+    @property
+    def last_visible_item(self):
+        return self.items[self.last_visible_index]
+
+    @property
+    def scroll_destination(self):
+        print self.first_visible_index, self.last_visible_index
+
+        if self.selection.screen_y + self.selection.height > self.viewport.height: 
+            return self.viewport.height - (self.selection.y+self.selection.height)
+        elif self.selection.screen_y < 0:
+            return -self.selection.y
+        else:
+            return self.viewport.camera.y
+
+    @property
+    def scroll(self):
+        return self.viewport.camera.y
+
+    @scroll.setter
+    def scroll(self, value):
+        self.viewport.camera.y = value
+        if self.selection:
+            self.layout.preupdate()
+            self.selection.preupdate()
+
+    def set_selection(self, new_value, system=False):
         self.selection.selected = False
         self.selected_index = new_value
         self.selection.selected = True
-        self.on_selection()
+        self.scroll = self.scroll_destination
+        self.on_selection(system)
 
     def on_selection(self):
         pass
@@ -124,7 +179,10 @@ class Menu(Sprite):
 
     @property
     def selection(self):
-        return self.items[self.selected_index]
+        if len(self.items) != 0:
+            return self.items[self.selected_index]
+        else:
+            return None
 
     @property
     def items(self):
@@ -178,26 +236,39 @@ if __name__ == "__main__":
             self.add_item(MenuItem("hi there"))
             self.add_item(MenuItem("cool"))
             self.add_item(MenuItem("", selectable=False))
+
             self.add_item(MenuItem("--- stuff ----", selectable=False))
             self.add_item(MenuItem("more stuff"))
             self.add_item(MenuItem("more cool"))
+            self.add_item(MenuItem("", selectable=False))
+
+            self.add_item(MenuItem("--- scrolling test ----", selectable=False))
+            for number in range(10):
+                self.add_item(MenuItem("item #" + str(number)))
+
+            # self.on_selection(False)
 
         def unanimate(self):
             self.animating = False
 
-        def on_selection(self):
+        def on_selection(self, system):
             # self.animating = True
 
-            tween.to(
-                self.selection_box, 
-                {'x': self.selection.x,
-                 'y': self.selection.y,
-                 'width': self.selection.width,
-                 'height': self.selection.height},
-                0.10,
-                tween.Easing.ease_out,
-                done_callback=self.unanimate
-            )
+            if system:
+                self.selection_box.x = self.selection.screen_x
+                self.selection_box.y = self.selection.screen_y
+                self.selection_box.size = self.selection.size
+            else:
+                tween.to(
+                    self.selection_box, 
+                    {'x': self.selection.screen_x,
+                     'y': self.selection.screen_y,
+                     'width': self.selection.width,
+                     'height': self.selection.height},
+                    0.10,
+                    tween.Easing.ease_out,
+                    done_callback=self.unanimate
+                )
 
     class TestScene(Scene):
         def __init__(self):
