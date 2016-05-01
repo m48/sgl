@@ -130,6 +130,9 @@ class Sprite(object):
         )
 
     def world_to_screen(self, x, y):
+        screen_x = self.x
+        screen_y = self.y
+
         if self.parent and not self.fixed:
 
             if hasattr(self.parent, "camera"):
@@ -138,13 +141,8 @@ class Sprite(object):
                         self.x, self.y, self.parallax)
                 )
 
-            else:
-                screen_x = self.parent.screen_x + self.x
-                screen_y = self.parent.screen_y + self.y
-
-        else:
-            screen_x = self.x
-            screen_y = self.y
+            screen_x += self.parent.screen_x
+            screen_y += self.parent.screen_y
 
         return screen_x, screen_y
 
@@ -383,49 +381,17 @@ class Viewport(Sprite):
     def __init__(self):
         super(Viewport, self).__init__()
 
-        self.view_rect = Rect()
-
         self.camera = Camera()
-
-        self._width = 0
-        self._height = 0
-
-    @property
-    def width(self):
-        return self._width
-
-    @width.setter
-    def width(self, value):
-        self._width = value
-        self.view_rect.width = value
-        self.redefine_surface()
-
-    @property
-    def height(self):
-        return self._height
-
-    @width.setter
-    def height(self, value):
-        self._height = value
-        self.view_rect.height = value
-        self.redefine_surface()
-
-    def redefine_surface(self):
-        if self._width and self._height:
-            self.surface = sgl.make_surface(self._width, self._height)
-
-    def add(self, sprite):
-        super(Viewport, self).add(sprite)
 
     def draw(self):
         if not self.visible: return
 
-        with sgl.with_buffer(self.surface):
-            sgl.clear(0, 0)
+        with sgl.with_state():
+            self.view_rect = self.screen_rect
+            sgl.set_clip_rect(*self.screen_rect.to_tuple())
             self.draw_children()
 
         self.draw_self()
-
 
 if __name__ == "__main__":
     # sgl.init(320, 240, 2)

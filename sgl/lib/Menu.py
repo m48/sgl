@@ -42,6 +42,7 @@ class Menu(Sprite):
         self.viewport = Viewport()
         
         self.layout = FlowLayout()
+        self.layout.height = 2000
         self.viewport.add(self.layout)
 
         self.interior_margin = 0
@@ -67,8 +68,8 @@ class Menu(Sprite):
         if len(self.items)-1 == self.selected_index:
             if item.selectable:
                 # in case camera is moved up
-                self.layout.preupdate()
-                item.preupdate()
+                self.preupdate()
+                self.update()
 
                 self.set_selection(self.selected_index, system=True)
             else:
@@ -103,20 +104,21 @@ class Menu(Sprite):
 
     @property
     def scroll_destination(self):
-        if self.selection.screen_y + self.selection.height > self.viewport.height: 
-            return self.viewport.height - (self.selection.y+self.selection.height)
-        elif self.selection.screen_y < 0:
-            return -self.selection.y
+
+        if self.selection.screen_y + self.selection.height > self.viewport.screen_y + self.viewport.height: 
+            return (self.selection.y+self.selection.height) - self.viewport.height
+        elif self.selection.screen_y < self.viewport.screen_y:
+            return self.selection.y
         else:
-            return self.viewport.camera.y
+            return self.scroll
 
     @property
     def scroll(self):
-        return self.viewport.camera.y
+        return -self.viewport.camera.y
 
     @scroll.setter
     def scroll(self, value):
-        self.viewport.camera.y = value
+        self.viewport.camera.y = -value
         if self.selection:
             self.layout.preupdate()
             self.selection.preupdate()
@@ -192,7 +194,7 @@ class Menu(Sprite):
         self.viewport.height = self.height - self.exterior_margin*2
 
         self.layout.width = self.viewport.width
-        self.layout.height = self.viewport.height
+        # self.layout.height = self.layout.min_height
         self.layout.spacing = self.spacing
         self.layout.margin = self.interior_margin
         self.layout.reflow()
@@ -229,6 +231,7 @@ if __name__ == "__main__":
             self.selection_box = RectSprite()
             self.selection_box.fill_color = (1.0, 0.25)
             self.selection_box.size = 0, 0
+            self.selection_box.fixed = True
             self.add(self.selection_box)
 
             self.add_item(MenuItem("--- stuff ----", selectable=False))
