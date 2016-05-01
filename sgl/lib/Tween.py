@@ -49,7 +49,7 @@ class Tween():
         self.duration = duration
 
         self.target = target
-        self.originals = {key: target.__dict__[key] for key in properties}
+        self.originals = {key: getattr(target, key) for key in properties}
         self.destinations = properties
 
         self.easing_function = easing
@@ -64,7 +64,7 @@ class Tween():
 
     def cheat(self):
         for key in self.destinations:
-            self.target.__dict__[key] = self.destinations[key]
+            setattr(self.target, key, self.destinations[key])
 
     def update(self, dt):
         self.time += dt
@@ -75,11 +75,11 @@ class Tween():
         time = (self.time-self.delay)/float(self.duration)
 
         for key in self.destinations:
-            self.target.__dict__[key] = Util.lerp(
+            setattr(self.target, key, Util.lerp(
                 self.originals[key],
                 self.destinations[key],
                 self.easing_function(time)
-            )
+            ))
 
 manager = TweenManager()
 

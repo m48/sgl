@@ -315,6 +315,8 @@ class ShapeSprite(Sprite):
         pass
 
     def draw(self):
+        if not self.visible: return
+
         with sgl.with_state():
             if self.no_stroke:
                 sgl.no_stroke()

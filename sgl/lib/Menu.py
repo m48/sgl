@@ -59,7 +59,10 @@ class Menu(Sprite):
         pass
 
     def add_item(self, item):
-        self.layout.add(item, 0, 1.0)
+        if item.width == 0:
+            self.layout.add(item, 0, 1.0)
+        else:
+            self.layout.add(item, 0, 0, 0.5)
         self.layout.reflow()
 
         if self.viewport not in self.subsprites:
@@ -110,7 +113,7 @@ class Menu(Sprite):
         elif self.selection.screen_y < self.viewport.screen_y:
             return self.selection.y
         else:
-            return self.scroll
+            return None
 
     @property
     def scroll(self):
@@ -127,7 +130,6 @@ class Menu(Sprite):
         self.selection.selected = False
         self.selected_index = new_value
         self.selection.selected = True
-        self.scroll = self.scroll_destination
         self.on_selection(system)
 
     def on_selection(self):
@@ -252,15 +254,23 @@ if __name__ == "__main__":
 
         def unanimate(self):
             self.animating = False
-
+            # self.selection_box.visible = True
+ 
         def on_selection(self, system):
-            # self.animating = True
-
             if system:
                 self.selection_box.x = self.selection.screen_x
                 self.selection_box.y = self.selection.screen_y
                 self.selection_box.size = self.selection.size
+                if self.scroll_destination:
+                    self.scroll = self.scroll_destination
+
             else:
+                old_scroll = None
+                scroll_destination = self.scroll_destination
+                if scroll_destination:
+                    old_scroll = self.scroll
+                    self.scroll = scroll_destination
+
                 tween.to(
                     self.selection_box, 
                     {'x': self.selection.screen_x,
@@ -268,9 +278,21 @@ if __name__ == "__main__":
                      'width': self.selection.width,
                      'height': self.selection.height},
                     0.10,
-                    tween.Easing.ease_out,
-                    done_callback=self.unanimate
-                )
+                    tween.Easing.ease_out                )
+    
+                if old_scroll != None:
+                    self.scroll = old_scroll
+                    self.animating = True
+                    # self.selection_box.visible = False
+
+                    tween.to(
+                        self,
+                        {'scroll': scroll_destination},
+                        0.10,
+                        tween.Easing.ease_out,
+                        done_callback=self.unanimate
+                    )
+                        
 
     class TestScene(Scene):
         def __init__(self):
