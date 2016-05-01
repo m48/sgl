@@ -47,7 +47,6 @@ class Menu(Sprite):
         self.interior_margin = 0
         self.spacing = 0
         self.exterior_margin = 0
-        self.scroll_margin = 0
 
         self.animating = False
 
@@ -104,8 +103,6 @@ class Menu(Sprite):
 
     @property
     def scroll_destination(self):
-        print self.first_visible_index, self.last_visible_index
-
         if self.selection.screen_y + self.selection.height > self.viewport.height: 
             return self.viewport.height - (self.selection.y+self.selection.height)
         elif self.selection.screen_y < 0:
@@ -189,6 +186,8 @@ class Menu(Sprite):
         return self.layout.subsprites
 
     def reflow(self):
+        self.viewport.x = self.exterior_margin
+        self.viewport.y = self.exterior_margin
         self.viewport.width = self.width - self.exterior_margin*2
         self.viewport.height = self.height - self.exterior_margin*2
 
@@ -217,7 +216,7 @@ if __name__ == "__main__":
 
             self.position = 32,32
             self.size = 200, 200
-            self.interior_margin = 5
+            self.exterior_margin = 5
             self.reflow()
 
             self.loop_selection = True
