@@ -263,6 +263,8 @@ class Backend:
 
         buffer = None
 
+        clip_rect = None
+
     gfx_stack = []
 
     ## SYSTEM
@@ -893,6 +895,7 @@ class Backend:
     ## SURFACES
     def pop(self):
         self.gfx_state.__dict__ = self.gfx_stack.pop()
+        self.gfx_state.buffer.set_clip(self.gfx_state.clip_rect)
 
     def push(self):
         self.gfx_stack.append(self.gfx_state.__dict__.copy())
@@ -928,6 +931,17 @@ class Backend:
 
     def get_height(self):
         return self.gfx_state.buffer.get_height()
+
+    def set_clip_rect(self, *args):
+        self.gfx_state.clip_rect = args
+        self.gfx_state.buffer.set_clip(*args)
+
+    def get_clip_rect(self, *args):
+        return self.gfx_state.clip_rect
+
+    def no_clip_rect(self):
+        self.gfx_state.clip_rect = None
+        self.gfx_state.buffer.set_clip(None)
 
     def invert(self, surface):
         if not has_numpy:

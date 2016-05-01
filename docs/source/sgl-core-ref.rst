@@ -175,6 +175,9 @@ These commands have to do with using surfaces and changing the current drawing b
 .. autofunction:: sgl.blitf
 .. autofunction:: sgl.make_surface
 .. autofunction:: sgl.get_chunk
+.. autofunction:: sgl.set_clip_rect
+.. autofunction:: sgl.get_clip_rect
+.. autofunction:: sgl.no_clip_rect
 .. autofunction:: sgl.set_buffer
 .. autofunction:: sgl.reset_buffer
 .. autofunction:: sgl.with_buffer
