@@ -37,8 +37,6 @@ class Menu(Sprite):
     def __init__(self):
         super(Menu, self).__init__()
 
-        self.on_before_init()
-        
         self.viewport = Viewport()
         
         self.layout = FlowLayout()
@@ -50,13 +48,19 @@ class Menu(Sprite):
         self.exterior_margin = 0
 
         self.animating = False
+        self.focused = True
 
         self.loop_selection = False
 
         self.selected_index = 0
 
-    def on_before_init(self):
-        pass
+        self.visible = False
+
+    def show(self):
+        self.visible = True
+
+    def hide(self):
+        self.visible = False
 
     def add_item(self, item):
         if item.width == 0:
@@ -204,10 +208,10 @@ class Menu(Sprite):
     def update(self):
         super(Menu, self).update()
 
-        if not self.animating:
-            if sgl.on_key_up(sgl.key.up):
+        if self.focused and not self.animating:
+            if sgl.on_key_down(sgl.key.up):
                 self.prev_item()
-            if sgl.on_key_up(sgl.key.down):
+            if sgl.on_key_down(sgl.key.down):
                 self.next_item()
 
 if __name__ == "__main__":
@@ -230,6 +234,8 @@ if __name__ == "__main__":
             box.size = self.width, self.height
             self.add(box)
 
+            self.side = "bottom"
+
             self.selection_box = RectSprite()
             self.selection_box.fill_color = (1.0, 0.25)
             self.selection_box.size = 0, 0
@@ -250,11 +256,48 @@ if __name__ == "__main__":
             for number in range(10):
                 self.add_item(MenuItem("item #" + str(number)))
 
-            # self.on_selection(False)
+        def show(self):
+            self.visible = True
+            self.animating = True
+            self.selection_box.visible = False
 
+            x, y = self.side_to_coords()
+            tween.from_orig(self,
+                            {'x': x, 'y': y},
+                            0.25,
+                            tween.Easing.ease_out,
+                            done_callback=self.unanimate)
+
+        def hide(self):
+            self.animating = True
+            self.selection_box.visible = False
+
+            x, y = self.side_to_coords()
+            tween.to(self,
+                     {'x': x, 'y': y},
+                     0.25,
+                     tween.Easing.ease_out,
+                     done_callback=self.hide_finish)
+
+        def hide_finish(self):
+            self.visible = False
+
+        def side_to_coords(self):
+            x = self.x
+            y = self.y
+            if self.side == "left":
+                x = -self.width
+            elif self.side == "right":
+                x = sgl.get_width()
+            elif self.side == "top":
+                y = -self.height
+            elif self.side == "bottom":
+                y = sgl.get_height()
+            return x,y
+                
         def unanimate(self):
             self.animating = False
-            # self.selection_box.visible = True
+            self.selection_box.visible = True
  
         def on_selection(self, system):
             if system:
@@ -307,15 +350,14 @@ if __name__ == "__main__":
 
             self.add(blackness)
 
-            self.add(TestMenu1())
+            menu = TestMenu1()
+            self.add(menu)
+            menu.show()
 
         def update(self):
             super(TestScene, self).update()
             
             tween.update(sgl.get_dt())
-            # self.menu.spacing += 10 * sgl.get_dt()
-            # self.menu.viewport.camera.y += 100 * sgl.get_dt()
-            # self.menu.reflow()
 
             sgl.set_title("FPS: " + str(sgl.get_fps()))
 

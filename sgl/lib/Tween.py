@@ -86,6 +86,15 @@ manager = TweenManager()
 def to(target, properties, duration, easing=Easing.linear, delay=0, done_callback=None):
     manager.add(Tween(target, properties, duration, easing, delay, done_callback))
 
+# 'from' is a reserved word in Python |:(
+def from_orig(target, properties, duration, easing=Easing.linear, delay=0, done_callback=None):
+    originals = {key: getattr(target, key) for key in properties}
+
+    for key in properties:
+        setattr(target, key, properties[key])
+
+    manager.add(Tween(target, originals, duration, easing, delay, done_callback))
+
 def update(dt):
     manager.update(dt)
 
