@@ -2,6 +2,7 @@ import sgl
 from sgl.lib.Sprite import Sprite, RectSprite, Scene, Viewport
 from sgl.lib.Layout import FlowLayout
 import sgl.lib.Tween as tween
+import sgl.lib.Time as time
 
 class MenuItem(Sprite):
     def __init__(self, text, action=None, selectable=True):
@@ -53,6 +54,10 @@ class Menu(Sprite):
         self.loop_selection = False
 
         self.selected_index = 0
+
+        self.repeat_delay = 0.25
+        self.repeat_interval = 0.10
+        self.repeat_object = None
 
         self.visible = False
 
@@ -205,14 +210,31 @@ class Menu(Sprite):
         self.layout.margin = self.interior_margin
         self.layout.reflow()
 
+    def start_repeat(self):
+        if self.repeat_object:
+            self.repeat_object.stop()
+            self.repeat_object = None
+
+        if sgl.is_key_pressed(sgl.key.up):
+            self.repeat_object = time.set_interval(self.repeat_interval, self.prev_item)
+        elif sgl.is_key_pressed(sgl.key.down):
+            self.repeat_object = time.set_interval(self.repeat_interval, self.next_item)
+
     def update(self):
         super(Menu, self).update()
 
         if self.focused and not self.animating:
             if sgl.on_key_down(sgl.key.up):
                 self.prev_item()
-            if sgl.on_key_down(sgl.key.down):
+                time.set_timeout(self.repeat_delay, self.start_repeat)
+            elif sgl.on_key_down(sgl.key.down):
                 self.next_item()
+                time.set_timeout(self.repeat_delay, self.start_repeat)
+            elif not (sgl.is_key_pressed(sgl.key.up) 
+                    or sgl.is_key_pressed(sgl.key.down)):
+                if self.repeat_object:
+                    self.repeat_object.stop()
+                    self.repeat_object = None
 
 if __name__ == "__main__":
     sgl.init(640, 480, 1)
@@ -358,6 +380,7 @@ if __name__ == "__main__":
             super(TestScene, self).update()
             
             tween.update(sgl.get_dt())
+            time.update(sgl.get_dt())
 
             sgl.set_title("FPS: " + str(sgl.get_fps()))
 

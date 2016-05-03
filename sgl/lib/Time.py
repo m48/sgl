@@ -34,6 +34,10 @@ class TimeManager():
 
         # handle interval functions
         for number, interval in enumerate(self.intervals):
+            if interval.stopped:
+                del self.intervals[number]
+                continue
+
             distance = self.time - interval.last_time_called
             amount = int(distance / float(interval.interval))
 
@@ -41,9 +45,6 @@ class TimeManager():
                 for i in range(amount):
                     interval.function()
                 interval.last_time_called = self.time
-               
-            if interval.stopped:
-                del self.intervals[number]
 
 manager = TimeManager()
 
