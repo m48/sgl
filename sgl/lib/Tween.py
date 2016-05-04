@@ -32,6 +32,7 @@ class TweenManager():
 
     def add(self, tween):
         self.tweens.append(tween)
+        return self.tweens[-1]
 
     def update(self, dt):
         self.time += dt
@@ -62,13 +63,20 @@ class Tween():
         self.bounce = bounce
         self.done_callback = done_callback
 
+        self.stopped = False
+
     @property
     def done(self):
-        return self.time > (self.delay + self.duration)
+        return (self.stopped or self.time > (self.delay + self.duration))
+
+    def stop(self):
+        self.stopped = True
 
     def cheat(self):
         for key in self.destinations:
             setattr(self.target, key, self.destinations[key])
+
+        self.time = self.delay + self.duration + 1
 
     def reverse(self):
         self.originals, self.destinations = self.destinations, self.originals
@@ -92,7 +100,7 @@ class Tween():
 manager = TweenManager()
 
 def to(target, properties, duration, easing=Easing.linear, delay=0, bounce=False, done_callback=None):
-    manager.add(Tween(target, properties, duration, easing, delay, bounce, done_callback))
+    return manager.add(Tween(target, properties, duration, easing, delay, bounce, done_callback))
 
 # 'from' is a reserved word in Python |:(
 def from_orig(target, properties, duration, easing=Easing.linear, delay=0, bounce=False, done_callback=None):
@@ -101,7 +109,7 @@ def from_orig(target, properties, duration, easing=Easing.linear, delay=0, bounc
     for key in properties:
         setattr(target, key, properties[key])
 
-    manager.add(Tween(target, originals, duration, easing, delay, bounce, done_callback))
+    return manager.add(Tween(target, originals, duration, easing, delay, bounce, done_callback))
 
 def update(dt):
     manager.update(dt)
@@ -116,12 +124,14 @@ if __name__ == "__main__":
 
     sgl.no_stroke()
 
+    tw = None
     while sgl.is_running():
         sgl.clear(0)
         sgl.draw_circle(p.x, p.y, 20)
 
         if sgl.on_mouse_up():
-            to(p, {"x": sgl.get_mouse_x(), "y": sgl.get_mouse_y()}, 1, Easing.ease_out, bounce=True)
+            if tw: tw.stop()
+            tw = to(p, {"x": sgl.get_mouse_x(), "y": sgl.get_mouse_y()}, 1, Easing.ease_out, bounce=True)
 
         update(sgl.get_dt())
         sgl.frame()
