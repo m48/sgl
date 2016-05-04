@@ -151,22 +151,23 @@ class Sprite(object):
 
         return screen_x, screen_y
 
+    def update_screen_positions(self):
+        self.screen_x, self.screen_y = self.world_to_screen(*self.position)
+        for sprite in self.subsprites:
+            sprite.update_screen_positions()
+
     def preupdate(self):
         self.screen_x, self.screen_y = self.world_to_screen(*self.position)
 
     def update(self):
         for index, sprite in enumerate(self.subsprites):
+            sprite.preupdate()
+
             if sprite.active: 
-                sprite.preupdate()
                 sprite.update()
-                sprite.postupdate()
 
             if sprite.to_be_deleted:
                 del self.subsprites[index]
-
-    # I don't think this is useful for anything
-    def postupdate(self):
-        pass
 
     def draw(self):
         if not self.visible: return

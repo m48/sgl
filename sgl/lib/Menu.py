@@ -82,8 +82,7 @@ class Menu(Sprite):
         if len(self.items)-1 == self.selected_index:
             if item.selectable:
                 # in case camera is moved up
-                self.preupdate()
-                self.update()
+                self.update_screen_positions()
 
                 self.set_selection(self.selected_index, system=True)
             else:
@@ -380,24 +379,20 @@ if __name__ == "__main__":
         def show_other_menu(self):
             menu = self.add(TestMenu2())
 
-            menu.preupdate()
-            menu.viewport.preupdate()
-            menu.viewport.update()
+            menu.update_screen_positions()
             menu.set_selection(menu.selected_index, True)
-            
             menu.show()
+            menu.update_screen_positions()
 
             self.focused = False
 
         def show_scroll(self):
             menu = self.add(TestMenu3())
 
-            menu.preupdate()
-            menu.viewport.preupdate()
-            menu.viewport.update()
+            menu.update_screen_positions()
             menu.set_selection(menu.selected_index, True)
-            
             menu.show()
+            menu.update_screen_positions()
 
             self.focused = False
 
