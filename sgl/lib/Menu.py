@@ -41,7 +41,6 @@ class Menu(Sprite):
         self.viewport = Viewport()
         
         self.layout = FlowLayout()
-        self.layout.height = 2000
         self.viewport.add(self.layout)
 
         self.interior_margin = 0
@@ -66,6 +65,7 @@ class Menu(Sprite):
 
     def hide(self):
         self.visible = False
+        self.kill()
 
     def add_item(self, item):
         if item.width == 0:
@@ -73,6 +73,8 @@ class Menu(Sprite):
         else:
             self.layout.add(item, 0, 0, 0.5)
         self.layout.reflow()
+
+        self.layout.height = self.layout.min_height
 
         if self.viewport not in self.subsprites:
             self.add(self.viewport)
@@ -116,8 +118,9 @@ class Menu(Sprite):
 
     @property
     def scroll_destination(self):
-
-        if self.selection.screen_y + self.selection.height > self.viewport.screen_y + self.viewport.height: 
+        if self.selected_index == 0:
+            return 1
+        elif self.selection.screen_y + self.selection.height > self.viewport.screen_y + self.viewport.height: 
             return (self.selection.y+self.selection.height) - self.viewport.height
         elif self.selection.screen_y < self.viewport.screen_y:
             return self.selection.y
@@ -144,6 +147,10 @@ class Menu(Sprite):
     def on_selection(self):
         pass
 
+    def on_command(self):
+        if self.selection.action:
+            self.selection.action()
+
     def next_item(self):
         index = self.selected_index + 1
 
@@ -169,7 +176,8 @@ class Menu(Sprite):
 
         while True:
             if index < 0:
-                if self.loop_selection: index = len(self.items)-1
+                if self.loop_selection: 
+                    index = len(self.items)-1
                 else: 
                     self.on_invalid_selection()
                     return
@@ -214,6 +222,7 @@ class Menu(Sprite):
         if self.repeat_object:
             self.repeat_object.stop()
             self.repeat_object = None
+            return
 
         if sgl.is_key_pressed(sgl.key.up):
             self.repeat_object = time.set_interval(self.repeat_interval, self.prev_item)
@@ -235,26 +244,26 @@ class Menu(Sprite):
                 if self.repeat_object:
                     self.repeat_object.stop()
                     self.repeat_object = None
+            
+            if sgl.on_key_down(sgl.key.enter):
+                self.on_command()
 
 if __name__ == "__main__":
     sgl.init(640, 480, 1)
     sgl.set_font(sgl.load_system_font("Arial", 20))
 
-    class TestMenu1(Menu):
+    class BoxMenu(Menu):
         def __init__(self):
-            super(TestMenu1, self).__init__()
+            super(BoxMenu, self).__init__()
 
-            self.position = 32,32
-            self.size = 200, 200
             self.exterior_margin = 5
-            self.reflow()
 
             self.loop_selection = True
 
-            box = RectSprite()
-            box.fill_color = 0.50
-            box.size = self.width, self.height
-            self.add(box)
+            self.box = RectSprite()
+            self.box.fill_color = 0.50
+            self.box.size = 0,0
+            self.add(self.box)
 
             self.side = "bottom"
 
@@ -264,19 +273,10 @@ if __name__ == "__main__":
             self.selection_box.fixed = True
             self.add(self.selection_box)
 
-            self.add_item(MenuItem("--- stuff ----", selectable=False))
-            self.add_item(MenuItem("hi there"))
-            self.add_item(MenuItem("cool"))
-            self.add_item(MenuItem("", selectable=False))
+        def reflow(self):
+            super(BoxMenu, self).reflow()
 
-            self.add_item(MenuItem("--- stuff ----", selectable=False))
-            self.add_item(MenuItem("more stuff"))
-            self.add_item(MenuItem("more cool"))
-            self.add_item(MenuItem("", selectable=False))
-
-            self.add_item(MenuItem("--- scrolling test ----", selectable=False))
-            for number in range(10):
-                self.add_item(MenuItem("item #" + str(number)))
+            self.box.size = self.width, self.height            
 
         def show(self):
             self.visible = True
@@ -303,6 +303,7 @@ if __name__ == "__main__":
 
         def hide_finish(self):
             self.visible = False
+            self.kill()
 
         def side_to_coords(self):
             x = self.x
@@ -323,12 +324,14 @@ if __name__ == "__main__":
  
         def on_selection(self, system):
             if system:
-                self.selection_box.x = self.selection.screen_x
-                self.selection_box.y = self.selection.screen_y
-                self.selection_box.size = self.selection.size
                 if self.scroll_destination:
                     self.scroll = self.scroll_destination
 
+                self.selection_box.x = self.selection.screen_x
+                self.selection_box.y = self.selection.screen_y
+                self.selection_box.size = self.selection.size
+
+                # print self.selection_box.position
             else:
                 old_scroll = None
                 scroll_destination = self.scroll_destination
@@ -343,7 +346,8 @@ if __name__ == "__main__":
                      'width': self.selection.width,
                      'height': self.selection.height},
                     0.10,
-                    tween.Easing.ease_out                )
+                    tween.Easing.ease_out
+                )
     
                 if old_scroll != None:
                     self.scroll = old_scroll
@@ -357,7 +361,87 @@ if __name__ == "__main__":
                         tween.Easing.ease_out,
                         done_callback=self.unanimate
                     )
-                        
+
+    class TestMenu1(BoxMenu):
+        def __init__(self):
+            super(TestMenu1, self).__init__()
+
+            self.position = 32,32
+            self.size = 200, 200
+            self.reflow()
+
+            self.add_item(MenuItem("Show Other Menu", action=self.show_other_menu))
+            self.add_item(MenuItem("Show Scrolling Test", action=self.show_scroll))
+            self.add_item(MenuItem("", selectable=False))
+
+            self.add_item(MenuItem("- Unselectable", selectable=False))
+            self.add_item(MenuItem("Random"))
+
+        def show_other_menu(self):
+            menu = self.add(TestMenu2())
+
+            menu.preupdate()
+            menu.viewport.preupdate()
+            menu.viewport.update()
+            menu.set_selection(menu.selected_index, True)
+            
+            menu.show()
+
+            self.focused = False
+
+        def show_scroll(self):
+            menu = self.add(TestMenu3())
+
+            menu.preupdate()
+            menu.viewport.preupdate()
+            menu.viewport.update()
+            menu.set_selection(menu.selected_index, True)
+            
+            menu.show()
+
+            self.focused = False
+
+
+    class TestMenu2(BoxMenu):
+        def __init__(self):
+            super(TestMenu2, self).__init__()
+
+            self.position = 210,0
+            self.size = 200, 200
+            self.reflow()
+
+            self.add_item(MenuItem("Hi there"))
+            self.add_item(MenuItem("Cool"))
+            self.add_item(MenuItem("< Close", action=self.close))
+
+        def close(self):
+            self.hide()
+
+        def hide_finish(self):
+            self.parent.focused = True
+
+            super(TestMenu2, self).hide_finish()
+
+    class TestMenu3(BoxMenu):
+        def __init__(self):
+            super(TestMenu3, self).__init__()
+
+            self.position = 210,0
+            self.size = 200, 200
+            self.reflow()
+
+            for number in range(1,21):
+                self.add_item(MenuItem("Item #" + str(number)))
+            self.add_item(MenuItem("< Close", action=self.close))
+
+        def close(self):
+            self.hide()
+
+        def hide_finish(self):
+            self.parent.focused = True
+
+            super(TestMenu3, self).hide_finish()
+
 
     class TestScene(Scene):
         def __init__(self):

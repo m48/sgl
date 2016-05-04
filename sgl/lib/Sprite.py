@@ -28,6 +28,9 @@ class Sprite(object):
         # (you shouldn't change these manually)
         self.screen_x, self.screen_y = 0,0
 
+        # Size
+        self.width, self.height = 0,0
+
         # List of sprites inside this one
         self.subsprites = []
 
@@ -62,6 +65,8 @@ class Sprite(object):
     def add(self, sprite):
         sprite.parent = self
         self.subsprites.append(sprite)
+
+        return sprite
 
     # User facing access
     @property
@@ -377,7 +382,7 @@ class Scene(Sprite):
 
     def add(self, sprite):
         sprite.scene = self
-        super(Scene, self).add(sprite)
+        return super(Scene, self).add(sprite)
 
 class Viewport(Sprite):
     def __init__(self):
