@@ -264,7 +264,7 @@ if __name__ == "__main__":
 
             bg.fill_color = 0
             bg.no_stroke = True
-            bg.size = sgl.get_width(), sgl.get_height()
+            bg.fill()
 
             self.add(bg)
 

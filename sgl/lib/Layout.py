@@ -225,8 +225,7 @@ if __name__ == "__main__":
 
             blackness.no_stroke = True
             blackness.fill_color = 0
-
-            blackness.size = sgl.get_width(), sgl.get_height()
+            blackness.fill()
 
             self.add(blackness)
 

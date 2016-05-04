@@ -211,6 +211,26 @@ class Sprite(object):
         else:
             self.width, self.height = 0,0         
 
+    def fill(self):
+        self.anchor = 0, 0
+        self.position = 0, 0
+        if self.parent:
+            self.size = self.parent.size
+        else:
+            self.size = sgl.get_width(), sgl.get_height()
+
+    def center(self):
+        self.anchor = 0.5, 0.5
+        
+        if self.parent:
+            self.position = self.parent.width/2, self.parent.height/2
+        else:
+            self.position = sgl.get_width()/2, sgl.get_height()/2
+
+    def centre(self):
+        # In honor of wxWidgets
+        self.center()
+
     def kill(self):
         self.to_be_deleted = True
 
@@ -379,6 +399,8 @@ class Scene(Sprite):
             sgl.get_width(), sgl.get_height()
         )
 
+        self.size = sgl.get_width(), sgl.get_height()
+
         self.camera = Camera()
 
     def add(self, sprite):
@@ -415,9 +437,7 @@ if __name__ == "__main__":
 
         field.size = (sgl.get_width() * scale, 
                       sgl.get_height() * scale)
-        field.position = (sgl.get_width() * 0.5, 
-                          sgl.get_height()*0.5)
-        field.anchor = 0.5,0.5
+        field.center()
 
         field.parallax = parallax
 
@@ -432,8 +452,9 @@ if __name__ == "__main__":
             blackness.no_stroke = True
             blackness.fill_color = 0
 
-            blackness.size = sgl.get_width(), sgl.get_height()
             blackness.parallax = 3
+
+            blackness.fill()
 
             self.add(blackness)
 
@@ -506,9 +527,7 @@ if __name__ == "__main__":
             self.animation = "pulse"
             self.play()
 
-            x,y = 0.5, 0.5
-            self.position = int(sgl.get_width()*x), int(sgl.get_height()*y)
-            self.anchor = 0.5, 0.5
+            self.center()
             self.autosize()
 
             self.parallax = 2
@@ -556,7 +575,7 @@ if __name__ == "__main__":
 
             self.load_surface(self.normal_circle)
 
-            self.position = int(sgl.get_width()*x), int(sgl.get_height()*y)
+            self.position = sgl.get_width()*x, sgl.get_height()*y
             self.anchor = 0, 0.5
 
             self.vel = 150
