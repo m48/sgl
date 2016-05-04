@@ -194,6 +194,23 @@ class FlowLayout(Sprite):
                 sgl.set_stroke(0, 1.0, 0)
                 sgl.draw_rect(*self.screen_rect.to_tuple())
 
+class Spacer(object):
+    def __init__(self, width=0, height=0):
+        self.x = 0
+        self.y = 0
+        self.width = width
+        self.height = height
+
+        self.active = False
+        self.visible = False
+        self.to_be_deleted = False
+
+    def preupdate(self):
+        pass
+
+    def draw(self):
+        pass
+        
 if __name__ == "__main__":
     sgl.init(640, 480, 1)
 
