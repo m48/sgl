@@ -41,10 +41,13 @@ class TweenManager():
             if tween.done: 
                 tween.cheat()
                 if tween.done_callback: tween.done_callback()
-                del self.tweens[number]
+                if tween.bounce:
+                    tween.reverse()
+                else:
+                    del self.tweens[number]
 
 class Tween():
-    def __init__(self, target, properties, duration, easing=Easing.linear, delay=0, done_callback=None):
+    def __init__(self, target, properties, duration, easing=Easing.linear, delay=0, bounce=False, done_callback=None):
         self.delay = delay
         self.duration = duration
 
@@ -56,6 +59,7 @@ class Tween():
 
         self.time = 0
 
+        self.bounce = bounce
         self.done_callback = done_callback
 
     @property
@@ -65,6 +69,10 @@ class Tween():
     def cheat(self):
         for key in self.destinations:
             setattr(self.target, key, self.destinations[key])
+
+    def reverse(self):
+        self.originals, self.destinations = self.destinations, self.originals
+        self.time = 0
 
     def update(self, dt):
         self.time += dt
@@ -83,17 +91,17 @@ class Tween():
 
 manager = TweenManager()
 
-def to(target, properties, duration, easing=Easing.linear, delay=0, done_callback=None):
-    manager.add(Tween(target, properties, duration, easing, delay, done_callback))
+def to(target, properties, duration, easing=Easing.linear, delay=0, bounce=False, done_callback=None):
+    manager.add(Tween(target, properties, duration, easing, delay, bounce, done_callback))
 
 # 'from' is a reserved word in Python |:(
-def from_orig(target, properties, duration, easing=Easing.linear, delay=0, done_callback=None):
+def from_orig(target, properties, duration, easing=Easing.linear, delay=0, bounce=False, done_callback=None):
     originals = {key: getattr(target, key) for key in properties}
 
     for key in properties:
         setattr(target, key, properties[key])
 
-    manager.add(Tween(target, originals, duration, easing, delay, done_callback))
+    manager.add(Tween(target, originals, duration, easing, delay, bounce, done_callback))
 
 def update(dt):
     manager.update(dt)
@@ -113,7 +121,7 @@ if __name__ == "__main__":
         sgl.draw_circle(p.x, p.y, 20)
 
         if sgl.on_mouse_up():
-            to(p, {"x": sgl.get_mouse_x(), "y": sgl.get_mouse_y()}, 1, Easing.ease_out)
+            to(p, {"x": sgl.get_mouse_x(), "y": sgl.get_mouse_y()}, 1, Easing.ease_out, bounce=True)
 
         update(sgl.get_dt())
         sgl.frame()
