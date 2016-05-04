@@ -11,12 +11,12 @@ class MenuItem(Sprite):
         self.text = text
         self.action = action
 
-        self.size = 0,20
+        self.size = 0,sgl.get_text_height("")+5
 
         self.selected = False
         self.selectable = selectable
 
-        self.draw_debug = False # True
+        self.draw_debug = False
 
     def reflow(self):
         pass
@@ -47,6 +47,11 @@ class Menu(Sprite):
         self.spacing = 0
         self.exterior_margin = 0
 
+        self.repeat_delay = 0.25
+        self.repeat_interval = 0.10
+
+        self.center_vertical = False
+
         self.animating = False
         self.focused = True
 
@@ -54,8 +59,6 @@ class Menu(Sprite):
 
         self.selected_index = 0
 
-        self.repeat_delay = 0.25
-        self.repeat_interval = 0.10
         self.repeat_object = None
 
         self.visible = False
@@ -81,12 +84,16 @@ class Menu(Sprite):
 
         if len(self.items)-1 == self.selected_index:
             if item.selectable:
-                # in case camera is moved up
-                self.update_screen_positions()
-
-                self.set_selection(self.selected_index, system=True)
+                self.update_selection()
             else:
                 self.selected_index += 1
+
+    def update_selection(self):
+        # in case camera is moved up
+        self.update_screen_positions()
+                
+        self.set_selection(self.selected_index, system=True)
+        
 
     @property
     def first_visible_index(self):
@@ -143,7 +150,7 @@ class Menu(Sprite):
         self.selection.selected = True
         self.on_selection(system)
 
-    def on_selection(self):
+    def on_selection(self, system=False):
         pass
 
     def on_command(self):
@@ -212,9 +219,14 @@ class Menu(Sprite):
         self.viewport.height = self.height - self.exterior_margin*2
 
         self.layout.width = self.viewport.width
-        # self.layout.height = self.layout.min_height
         self.layout.spacing = self.spacing
         self.layout.margin = self.interior_margin
+
+        if self.layout.height and self.center_vertical and self.layout.height < self.viewport.height:
+            self.layout.y = (self.viewport.height-self.layout.height)/2
+        else:
+            self.layout.y = 0
+
         self.layout.reflow()
 
     def start_repeat(self):
@@ -247,119 +259,216 @@ class Menu(Sprite):
             if sgl.on_key_down(sgl.key.enter):
                 self.on_command()
 
+class ButtonMenuItem(Sprite):
+    def __init__(self, text, action=None, selectable=True):
+        super(ButtonMenuItem, self).__init__()
+        
+        self.text = text
+        self.action = action
+
+        self.size = sgl.get_width()/2, sgl.get_text_height("")+5
+
+        self.selected = False
+        self.selectable = selectable
+
+    def show(self, index):
+        tween.from_orig(
+            self,
+            {'x': self.parent.width + self.width},
+            0.25,
+            tween.Easing.ease_in,
+            delay=index*0.1
+        )
+
+    def hide(self, index):
+        if self.selected:
+            tween.to(
+                self,
+                {'y': -sgl.get_height()},
+                0.25,
+                tween.Easing.ease_in
+            )
+        else:
+            tween.to(
+                self,
+                {'x': -self.width},
+                0.25,
+                tween.Easing.ease_out
+            )
+
+    def reflow(self):
+        pass
+
+    def update(self):
+        super(ButtonMenuItem, self).update()
+
+    def draw(self):
+        super(ButtonMenuItem, self).draw()    
+
+        with sgl.with_state():
+            if self.selected:
+                sgl.set_fill(0.25)
+            else:
+                sgl.set_fill(0)
+
+            sgl.draw_rect(*self.screen_rect.to_tuple())
+
+            sgl.set_fill(1.0)
+            x = (self.width-sgl.get_text_width(self.text))/2
+            sgl.draw_text(self.text, self.screen_x+x, self.screen_y)
+
+class ButtonMenu(Menu):
+    def __init__(self):
+        super(ButtonMenu, self).__init__()
+
+        self.position = 0, 0
+        self.size = sgl.get_width(), sgl.get_height()
+
+        self.spacing = 10
+        self.center_vertical = True
+        self.animation_time = 0.25
+        self.item_delay = 0.10
+    
+    def show(self):
+        self.visible = True
+        self.animating = True
+
+        for index, item in enumerate(self.items):
+            item.show(index)
+
+        wait_time = self.animation_time + self.item_delay*(len(self.items)-1)
+        time.set_timeout(wait_time, self.unanimate)
+
+    def hide(self):
+        self.animating = True
+
+        for index, item in enumerate(self.items):
+            item.hide(index)
+
+        wait_time = self.animation_time + self.item_delay*(len(self.items)-1)
+        time.set_timeout(wait_time, self.hide_finish)
+
+    def hide_finish(self):
+        self.visible = False
+        self.kill()
+
+    def unanimate(self):
+        self.animating = False
+
+class BoxMenu(Menu):
+    def __init__(self):
+        super(BoxMenu, self).__init__()
+
+        self.exterior_margin = 5
+
+        self.loop_selection = True
+
+        self.box = RectSprite()
+        self.box.fill_color = 0.50
+        self.box.size = 0,0
+        self.add(self.box)
+
+        self.side = "bottom"
+
+        self.selection_box = RectSprite()
+        self.selection_box.fill_color = (1.0, 0.25)
+        self.selection_box.size = 0, 0
+        self.selection_box.fixed = True
+        self.add(self.selection_box)
+
+    def reflow(self):
+        super(BoxMenu, self).reflow()
+
+        self.box.size = self.width, self.height            
+
+    def show(self):
+        self.visible = True
+        self.animating = True
+        self.selection_box.visible = False
+
+        x, y = self.side_to_coords()
+        tween.from_orig(self,
+                        {'x': x, 'y': y},
+                        0.25,
+                        tween.Easing.ease_out,
+                        done_callback=self.unanimate)
+
+    def hide(self):
+        self.animating = True
+        self.selection_box.visible = False
+
+        x, y = self.side_to_coords()
+        tween.to(self,
+                 {'x': x, 'y': y},
+                 0.25,
+                 tween.Easing.ease_out,
+                 done_callback=self.hide_finish)
+
+    def hide_finish(self):
+        self.visible = False
+        self.kill()
+
+    def side_to_coords(self):
+        x = self.x
+        y = self.y
+        if self.side == "left":
+            x = -self.width
+        elif self.side == "right":
+            x = sgl.get_width()
+        elif self.side == "top":
+            y = -self.height
+        elif self.side == "bottom":
+            y = sgl.get_height()
+        return x,y
+
+    def unanimate(self):
+        self.animating = False
+        self.selection_box.visible = True
+
+    def on_selection(self, system):
+        if system:
+            if self.scroll_destination:
+                self.scroll = self.scroll_destination
+
+            self.selection_box.x = self.selection.screen_x
+            self.selection_box.y = self.selection.screen_y
+            self.selection_box.size = self.selection.size
+
+            # print self.selection_box.position
+        else:
+            old_scroll = None
+            scroll_destination = self.scroll_destination
+            if scroll_destination:
+                old_scroll = self.scroll
+                self.scroll = scroll_destination
+
+            tween.to(
+                self.selection_box, 
+                {'x': self.selection.screen_x,
+                 'y': self.selection.screen_y,
+                 'width': self.selection.width,
+                 'height': self.selection.height},
+                0.10,
+                tween.Easing.ease_out
+            )
+
+            if old_scroll != None:
+                self.scroll = old_scroll
+                self.animating = True
+                # self.selection_box.visible = False
+
+                tween.to(
+                    self,
+                    {'scroll': scroll_destination},
+                    0.10,
+                    tween.Easing.ease_out,
+                    done_callback=self.unanimate
+                )
+
+
 if __name__ == "__main__":
     sgl.init(640, 480, 1)
     sgl.set_font(sgl.load_system_font("Arial", 20))
-
-    class BoxMenu(Menu):
-        def __init__(self):
-            super(BoxMenu, self).__init__()
-
-            self.exterior_margin = 5
-
-            self.loop_selection = True
-
-            self.box = RectSprite()
-            self.box.fill_color = 0.50
-            self.box.size = 0,0
-            self.add(self.box)
-
-            self.side = "bottom"
-
-            self.selection_box = RectSprite()
-            self.selection_box.fill_color = (1.0, 0.25)
-            self.selection_box.size = 0, 0
-            self.selection_box.fixed = True
-            self.add(self.selection_box)
-
-        def reflow(self):
-            super(BoxMenu, self).reflow()
-
-            self.box.size = self.width, self.height            
-
-        def show(self):
-            self.visible = True
-            self.animating = True
-            self.selection_box.visible = False
-
-            x, y = self.side_to_coords()
-            tween.from_orig(self,
-                            {'x': x, 'y': y},
-                            0.25,
-                            tween.Easing.ease_out,
-                            done_callback=self.unanimate)
-
-        def hide(self):
-            self.animating = True
-            self.selection_box.visible = False
-
-            x, y = self.side_to_coords()
-            tween.to(self,
-                     {'x': x, 'y': y},
-                     0.25,
-                     tween.Easing.ease_out,
-                     done_callback=self.hide_finish)
-
-        def hide_finish(self):
-            self.visible = False
-            self.kill()
-
-        def side_to_coords(self):
-            x = self.x
-            y = self.y
-            if self.side == "left":
-                x = -self.width
-            elif self.side == "right":
-                x = sgl.get_width()
-            elif self.side == "top":
-                y = -self.height
-            elif self.side == "bottom":
-                y = sgl.get_height()
-            return x,y
-                
-        def unanimate(self):
-            self.animating = False
-            self.selection_box.visible = True
- 
-        def on_selection(self, system):
-            if system:
-                if self.scroll_destination:
-                    self.scroll = self.scroll_destination
-
-                self.selection_box.x = self.selection.screen_x
-                self.selection_box.y = self.selection.screen_y
-                self.selection_box.size = self.selection.size
-
-                # print self.selection_box.position
-            else:
-                old_scroll = None
-                scroll_destination = self.scroll_destination
-                if scroll_destination:
-                    old_scroll = self.scroll
-                    self.scroll = scroll_destination
-
-                tween.to(
-                    self.selection_box, 
-                    {'x': self.selection.screen_x,
-                     'y': self.selection.screen_y,
-                     'width': self.selection.width,
-                     'height': self.selection.height},
-                    0.10,
-                    tween.Easing.ease_out
-                )
-    
-                if old_scroll != None:
-                    self.scroll = old_scroll
-                    self.animating = True
-                    # self.selection_box.visible = False
-
-                    tween.to(
-                        self,
-                        {'scroll': scroll_destination},
-                        0.10,
-                        tween.Easing.ease_out,
-                        done_callback=self.unanimate
-                    )
 
     class TestMenu1(BoxMenu):
         def __init__(self):
@@ -367,20 +476,23 @@ if __name__ == "__main__":
 
             self.position = 32,32
             self.size = 200, 200
-            self.reflow()
 
             self.add_item(MenuItem("Show Other Menu", action=self.show_other_menu))
             self.add_item(MenuItem("Show Scrolling Test", action=self.show_scroll))
+            self.add_item(MenuItem("Show Button Menu", action=self.show_buttons))
             self.add_item(MenuItem("", selectable=False))
 
             self.add_item(MenuItem("- Unselectable", selectable=False))
             self.add_item(MenuItem("Random"))
 
+            self.center_vertical = True
+            self.reflow()
+            self.update_selection()
+
         def show_other_menu(self):
             menu = self.add(TestMenu2())
 
-            menu.update_screen_positions()
-            menu.set_selection(menu.selected_index, True)
+            menu.update_selection()
             menu.show()
             menu.update_screen_positions()
 
@@ -389,10 +501,20 @@ if __name__ == "__main__":
         def show_scroll(self):
             menu = self.add(TestMenu3())
 
-            menu.update_screen_positions()
-            menu.set_selection(menu.selected_index, True)
+            menu.update_selection()
             menu.show()
             menu.update_screen_positions()
+
+            self.focused = False
+
+        def show_buttons(self):
+            menu = self.scene.add(TestMenu4())
+
+            menu.parent_menu = self
+
+            # menu.update_selection()
+            menu.show()
+            # menu.update_screen_positions()
 
             self.focused = False
 
@@ -407,10 +529,7 @@ if __name__ == "__main__":
 
             self.add_item(MenuItem("Hi there"))
             self.add_item(MenuItem("Cool"))
-            self.add_item(MenuItem("< Close", action=self.close))
-
-        def close(self):
-            self.hide()
+            self.add_item(MenuItem("< Close", action=self.hide))
 
         def hide_finish(self):
             self.parent.focused = True
@@ -421,21 +540,34 @@ if __name__ == "__main__":
         def __init__(self):
             super(TestMenu3, self).__init__()
 
+            self.side = "right"
             self.position = 210,0
             self.size = 200, 200
             self.reflow()
 
             for number in range(1,21):
                 self.add_item(MenuItem("Item #" + str(number)))
-            self.add_item(MenuItem("< Close", action=self.close))
-
-        def close(self):
-            self.hide()
+            self.add_item(MenuItem("< Close", action=self.hide))
 
         def hide_finish(self):
             self.parent.focused = True
 
             super(TestMenu3, self).hide_finish()
+
+    class TestMenu4(ButtonMenu):
+        def __init__(self):
+            super(TestMenu4, self).__init__()
+
+            self.add_item(ButtonMenuItem("Hi there"))
+            self.add_item(ButtonMenuItem("Cool"))
+            self.add_item(ButtonMenuItem("< Close", action=self.hide))
+
+            self.reflow()
+
+        def hide_finish(self):
+            self.parent_menu.focused = True
+
+            super(TestMenu4, self).hide_finish()
 
 
     class TestScene(Scene):
