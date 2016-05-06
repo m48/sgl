@@ -15,8 +15,20 @@ class Rect():
     def y2(self):
         return self.y + self.height
 
-    def to_tuple(self):
-        return (self.x, self.y, self.width, self.height)
+    def to_tuple(self, coords=False):
+        if coords:
+            return (self.x, self.y, self.x2, self.y2)
+        else:
+            return (self.x, self.y, self.width, self.height)
+
+    def make_positive(self):
+        if self.width < 0:
+            self.width = -self.width
+            self.x -= self.width
+
+        if self.height < 0:
+            self.height = -self.height
+            self.y -= self.height
 
     def is_in(self, *args):
         if isinstance(args[0], Rect):

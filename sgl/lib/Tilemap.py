@@ -1,5 +1,6 @@
 import sgl
 from sgl.lib.Sprite import Sprite, AnimatedSprite, RectSprite, Scene
+from sgl.lib.Rect import Rect
 
 class Tilemap(Sprite):
     tiles = []
@@ -57,6 +58,27 @@ class Tilemap(Sprite):
 
     def update_to_update(self):
         self.to_update = [i for i in self.tiles if isinstance(i, Sprite)]
+
+    def coords_at_rect(self, rect, screen=True):
+        rect.make_positive()
+
+        x1, y1 = self.coords_at(rect.x, rect.y, screen)
+        x2, y2 = self.coords_at(rect.x2, rect.y2, screen)
+
+        return Rect(x1, y1, x2-x1, y2-y1)
+
+    def collision_in(self, rect):
+        x1, y1, x2, y2 = self.coords_at_rect(rect).to_tuple(True)
+
+        if not (self.in_bounds(y1, x1) and self.in_bounds(y2, x2)):
+            return True
+
+        for row in range(y1, y2+1):
+            for column in range(x1, x2+1):
+                if self.collision[row][column]:
+                    return True
+
+        return False
 
     def coords_at(self, x, y, screen=True):
         if screen:
@@ -168,23 +190,34 @@ if __name__ == "__main__":
 
             self.map.tile_size = 32, 32
 
-            self.map.make_blank_map(10, 20)
+            width = 30
+            height = 20
 
-            for i in range(10):
+            self.map.make_blank_map(width, height)
+
+            for i in range(width):
                 self.map.set_tile(2, i, 0)
 
-            for i in range(1,20):
+            for i in range(1,height):
                 self.map.set_tile(2, 0, i)
-                self.map.set_tile(2, 9, i)
+                self.map.set_tile(2, width-1, i)
 
-            for i in range(5,20-5):
-                for j in range(3, 7):
+            for i in range(5,height-5):
+                for j in range(3, width-3):
                     self.map.set_tile(1, j, i)
 
-            for i in range(10):
-                self.map.set_tile(2, i, 19)
+            for i in range(width):
+                self.map.set_tile(2, i, height-1)
 
             self.add(self.map)
+
+            self.selection_box = RectSprite()
+
+            self.selection_box.fill_color = 1.0, 0, 0, 0.5
+            self.selection_box.visible = False
+            self.selection_box.fixed = True
+
+            self.add(self.selection_box)
 
         def draw(self):
             super(TestScene, self).draw()
@@ -215,6 +248,22 @@ if __name__ == "__main__":
             if sgl.is_key_pressed(sgl.key.left): 
                 self.camera.x += v * sgl.get_dt()
 
+            if sgl.on_mouse_down():
+                self.selection_box.visible = True
+                self.selection_box.x = sgl.get_mouse_x()
+                self.selection_box.y = sgl.get_mouse_y()
+
+            if sgl.is_mouse_pressed():
+                self.selection_box.width = sgl.get_mouse_x() - self.selection_box.x
+                self.selection_box.height = sgl.get_mouse_y() - self.selection_box.y
+                if self.map.collision_in(self.selection_box.screen_rect):
+                    self.selection_box.fill_color = 1.0, 0, 0, 0.5
+                else:
+                    self.selection_box.fill_color = 0, 1.0, 0, 0.5
+
+            if sgl.on_mouse_up():
+                self.selection_box.visible = False
+                
             sgl.set_title(map_text + " FPS: " + str(int(sgl.get_fps())))
 
     scene = TestScene()
