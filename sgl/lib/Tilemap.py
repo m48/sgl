@@ -117,11 +117,43 @@ class Tilemap(Sprite):
             item.update()
 
     def draw_self(self):
-        x = int(self.screen_x)
-        y = int(self.screen_y)
+        start_x = int(self.screen_x)
+        start_y = int(self.screen_y)
 
-        for row in range(self.map_size[1]):
-            for column in range(self.map_size[0]):
+        first_column, first_row, last_column, last_row = (
+            self.coords_at_rect(
+                Rect(-start_x, -start_y, self.parent.width, self.parent.height),
+                False
+            ).to_tuple(True)
+        )
+        width = -(first_column - last_column)
+        height = -(first_row - last_row)
+
+        if first_column > 0:
+            start_x += first_column * self.tile_size[0]
+
+        if first_column < 0:
+            first_column = 0
+            last_column = width
+
+        if last_column >= self.map_size[0]-1:
+            last_column = self.map_size[0]-1
+
+        if first_row > 0:
+            start_y += first_row * self.tile_size[1]
+
+        if first_row < 0:
+            first_row = 0
+            last_row = height
+
+        if last_row >= self.map_size[1]-1:
+            last_row = self.map_size[1]-1
+
+        x = start_x
+        y = start_y
+
+        for row in range(first_row, last_row+1):
+            for column in range(first_column, last_column+1):
                 tile = self.tiles[self.map[row][column]]
                 if isinstance(tile, Sprite):
                     tile.position = x, y
@@ -133,7 +165,7 @@ class Tilemap(Sprite):
                 x += self.tile_size[0]
 
             y += self.tile_size[1]
-            x = int(self.screen_x)
+            x = start_x
 
 class AnimatedTile(AnimatedSprite):
     def __init__(self, frames, speed, animation=[]):
@@ -178,7 +210,10 @@ if __name__ == "__main__":
                 sgl.make_surface(32, 32, (0,1.0,0)),
                 AnimatedTile(
                     [sgl.make_surface(32, 32, (0,0,1.0)),
-                     sgl.make_surface(32, 32, (0.5,0.5,1.0))],
+                     sgl.make_surface(32, 32, (0.25,0.25,1.0)),
+                     sgl.make_surface(32, 32, (0.5,0.5,1.0)),
+                     sgl.make_surface(32, 32, (0.25,0.25,1.0)),
+                    ],
                     1.0
                 ),
                 sgl.make_surface(32, 32, (0.5,0,0.25)),
