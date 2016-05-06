@@ -188,6 +188,8 @@ class AnimatedTile(AnimatedSprite):
 
 
 if __name__ == "__main__":
+    import random
+
     sgl.init(640, 480, 1)
     sgl.set_font(sgl.load_system_font("Arial", 20))
 
@@ -198,7 +200,7 @@ if __name__ == "__main__":
             blackness = RectSprite()
 
             blackness.no_stroke = True
-            blackness.fill_color = 0.25
+            blackness.fill_color = 0
             blackness.fixed = True
             blackness.fill()
 
@@ -206,17 +208,34 @@ if __name__ == "__main__":
 
             self.map = Tilemap()
 
+            grass = sgl.make_surface(32, 32, (0,1.0,0))
+            with sgl.with_buffer(grass):
+                for i in range(100):
+                    x = random.randrange(0,32)
+                    y = random.randrange(0,32)
+                    sgl.no_stroke()
+                    sgl.set_fill(0, 0.50, 0)
+                    sgl.draw_rect(x, y, 1, 4)
+                    sgl.set_fill(0, 0.75, 0)
+                    sgl.draw_rect(x, y, 1, 2)
+
+            wall = sgl.make_surface(32, 32, (0.5,0,0.25))
+            with sgl.with_buffer(wall):
+                sgl.no_fill()
+                sgl.set_stroke(0.25,0,0)
+                sgl.draw_rect(0, 0, 32, 32)
+            
             self.map.tiles = [
-                sgl.make_surface(32, 32, (0,1.0,0)),
+                grass,
                 AnimatedTile(
                     [sgl.make_surface(32, 32, (0,0,1.0)),
                      sgl.make_surface(32, 32, (0.25,0.25,1.0)),
                      sgl.make_surface(32, 32, (0.5,0.5,1.0)),
                      sgl.make_surface(32, 32, (0.25,0.25,1.0)),
                     ],
-                    1.0
+                    0.5,
                 ),
-                sgl.make_surface(32, 32, (0.5,0,0.25)),
+                wall,
             ]
 
             self.map.default_collision = {
@@ -231,7 +250,8 @@ if __name__ == "__main__":
             self.map.make_blank_map(width, height)
 
             for i in range(width):
-                self.map.set_tile(2, i, 0)
+                if i != width/2:
+                    self.map.set_tile(2, i, 0)
 
             for i in range(1,height):
                 self.map.set_tile(2, 0, i)
