@@ -21,6 +21,9 @@ class Sprite(object):
         # Store world coordinates
         self.x, self.y = 0, 0      
 
+        # Store previous world coordinates
+        self.prev_x, self.prev_y = 0, 0
+
         # Store anchor point
         self.a_x, self.a_y = 0,0
 
@@ -103,6 +106,10 @@ class Sprite(object):
     def position(self, new_value):
         self.x, self.y = new_value
 
+    @property
+    def prev_position(self):
+        return (self.screen_x, self.screen_y)
+
     # Converts the anchor point to real coordinates from the
     # scaling type
     @property
@@ -157,6 +164,7 @@ class Sprite(object):
             sprite.update_screen_positions()
 
     def preupdate(self):
+        self.prev_x, self.prev_y = self.position
         self.screen_x, self.screen_y = self.world_to_screen(*self.position)
 
     def update(self):

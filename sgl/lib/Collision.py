@@ -10,10 +10,13 @@ class CollisionChecker(object):
         self.object2 = object2
         self.callback = callback
 
-        args = inspect.getargspec(callback).args
-        self.callback_args = len(args)
-        if args[0] == "self":
-            self.callback_args -= 1
+        if callback:
+            args = inspect.getargspec(callback).args
+            self.callback_args = len(args)
+            if args[0] == "self":
+                self.callback_args -= 1
+        else:
+            self.callback_args = -1
 
     def do_callback(self, this, other):
         if self.callback_args == 0:
@@ -30,13 +33,71 @@ class CollisionChecker(object):
             self.callback(this, other, intersection)
 
     def update(self):
+        self.check_collision(True)
+
+    def check_collision(self, do_callback=False):
         if self.object2.surface:
             if self.object1.rect.is_in(self.object2.rect):
-                self.do_callback(self.object1, self.object2)
+                if do_callback:
+                    self.do_callback(self.object1, self.object2)
+                return True
         
         for sprite in self.object2.subsprites:
             if self.object1.rect.is_in(sprite.rect):
-                self.do_callback(self.object1, sprite)
+                if do_callback:
+                    self.do_callback(self.object1, sprite)
+                return True
+
+        return False
+
+class SlidingCollisionChecker(CollisionChecker):
+    def update(self):
+        px = int(self.object1.prev_x)
+        py = int(self.object1.prev_y)
+        x = int(self.object1.x)
+        y = int(self.object1.y)
+        orig_x = self.object1.x
+        orig_y = self.object1.y
+
+        if px == x and py == y: return
+
+        if x > px: dx = 1
+        elif x < px: dx = -1
+        else: dx = 0
+
+        if y > py: dy = 1
+        elif y < py: dy = -1
+        else: dy = 0
+
+        self.object1.position = px, py
+
+        # slide along x
+        while True:
+            self.object1.x += dx
+            x_colliding = self.check_collision()
+            if x_colliding: 
+                self.object1.x -= dx
+                break
+            elif self.object1.x == x:
+                break
+
+        if not x_colliding:
+            self.object1.x = orig_x
+
+        # slide along y
+        while True:
+            self.object1.y += dy
+            y_colliding = self.check_collision()
+            if y_colliding: 
+                self.object1.y -= dy
+                break
+            elif self.object1.y == y:
+                break
+
+        if not y_colliding:
+            self.object1.y = orig_y
+
+        # self.check_collision(True)
 
 class CollisionManager(object):
     def __init__(self):
@@ -48,6 +109,12 @@ class CollisionManager(object):
         )
         return self.checkers[-1]
 
+    def add_sliding(self, object1, object2):
+        self.checkers.append(
+            SlidingCollisionChecker(object1, object2, None)
+        )
+        return self.checkers[-1]
+
     def update(self):
         for checker in self.checkers:
             checker.update()
@@ -56,6 +123,9 @@ manager = CollisionManager()
 
 def add(object1, object2, callback):
     manager.add(object1, object2, callback)
+
+def add_sliding(object1, object2):
+    manager.add_sliding(object1, object2)
 
 def update():
     manager.update()
@@ -80,6 +150,13 @@ if __name__ == "__main__":
             super(Enemy, self).__init__()
 
             self.load_surface(make_circle(32, (1.0, 0.5, 0.5)))
+
+    class Obstacle(RectSprite):
+        def __init__(self):
+            super(RectSprite, self).__init__()
+
+            self.no_stroke = True
+            self.fill_color = 0.5
 
     class Player(Sprite):
         def __init__(self):
@@ -124,10 +201,18 @@ if __name__ == "__main__":
 
             self.add(self.enemy_group)
 
+            self.obstacle_group = Sprite()
+            self.obstacle_group.fill()
+
+            self.add(self.obstacle_group)
+
             self.player = Player()
             self.add(self.player)
 
+            self.add_obstacles()
+
             add(self.player, self.enemy_group, self.collision)
+            add_sliding(self.player, self.obstacle_group)
 
         def add_enemies(self):
             for i in range(10):
@@ -138,6 +223,25 @@ if __name__ == "__main__":
                 enemy.position = x, y
 
                 self.enemy_group.add(enemy)
+
+        def add_obstacles(self):
+            for i in range(10):
+                x = random.randrange(0, self.width)
+                y = random.randrange(0, self.height)
+                width = random.randrange(1, self.width/2)
+                height = random.randrange(1, self.height/2)
+
+                while Rect(x, y, width, height).is_in(self.player.rect):
+                    x = random.randrange(0, self.width)
+                    y = random.randrange(0, self.height)
+                    width = random.randrange(1, self.width/2)
+                    height = random.randrange(1, self.height/2)
+
+                obstacle = Obstacle()
+                obstacle.position = x, y
+                obstacle.size = width, height
+
+                self.obstacle_group.add(obstacle)
 
         def collision(self, o1, o2, rect):
             o2.kill()
@@ -156,7 +260,9 @@ if __name__ == "__main__":
             # time.update(sgl.get_dt())
 
             if sgl.on_key_up(sgl.key.space):
-                self.add_enemies()
+                self.obstacle_group.subsprites = []
+                self.add_obstacles()
+                # self.add_enemies()
 
             update()
 
