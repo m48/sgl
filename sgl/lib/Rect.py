@@ -58,6 +58,16 @@ class Rect():
             return None
 
 if __name__ == "__main__":
+    # r = Rect(0,0,32,32)
+    # r2 = Rect(32, 0, 64, 64)
+    # print r.is_in(r2)           # false
+    # r.x = 1
+    # print r.is_in(r2)           # true
+    # r.x = 64
+    # print r.is_in(r2)           # true
+    # 
+    # not expected behavior?
+
     import sgl
     sgl.init(640, 480)
 

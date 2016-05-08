@@ -3,6 +3,7 @@ from sgl.lib.Sprite import Sprite, AnimatedSprite, RectSprite, Scene
 from sgl.lib.Rect import Rect
 
 import inspect
+import math
 
 class CollisionChecker(object):
     def __init__(self, object1, object2, callback):
@@ -36,12 +37,17 @@ class CollisionChecker(object):
         self.check_collision(True)
 
     def check_collision(self, do_callback=False):
-        if self.object2.surface:
+        # Only check collision against the other sprite's rectangle if
+        # it has a display surface. If it doesn't, that means it's a
+        # group, and we don't want to test the rectangle of the whole
+        # group
+        if self.object2.surface: 
             if self.object1.rect.is_in(self.object2.rect):
                 if do_callback:
                     self.do_callback(self.object1, self.object2)
                 return True
         
+        # Check collision against subsprites, if it's a group
         for sprite in self.object2.subsprites:
             if self.object1.rect.is_in(sprite.rect):
                 if do_callback:
@@ -52,15 +58,17 @@ class CollisionChecker(object):
 
 class SlidingCollisionChecker(CollisionChecker):
     def update(self):
-        px = int(self.object1.prev_x)
-        py = int(self.object1.prev_y)
-        x = int(self.object1.x)
-        y = int(self.object1.y)
-        orig_x = self.object1.x
-        orig_y = self.object1.y
+        # Collect previous and current position
+        px = self.object1.prev_x
+        py = self.object1.prev_y
+        x = self.object1.x
+        y = self.object1.y
 
-        if px == x and py == y: return
+        # If object has not moved, don't do anything
+        if px == x and py == y: 
+            return
 
+        # Set dx and dy based on what direction the object is moving
         if x > px: dx = 1
         elif x < px: dx = -1
         else: dx = 0
@@ -69,35 +77,58 @@ class SlidingCollisionChecker(CollisionChecker):
         elif y < py: dy = -1
         else: dy = 0
 
+        # Place object at the previous position
         self.object1.position = px, py
 
-        # slide along x
-        while True:
+        # Slide the object towards its destination x value
+        x_colliding = False
+
+        # Loop only runs if the object is moving in that direction
+        # (I'm using dx as the condition here just to avoid writing an
+        #  extra if statement to surround the loop :| )
+        while dx:
             self.object1.x += dx
             x_colliding = self.check_collision()
+
+            # If it collides against something, slide it back, stop
             if x_colliding: 
                 self.object1.x -= dx
                 break
-            elif self.object1.x == x:
+
+            # If we are at or past our destination, stop
+            if ((dx > 0 and self.object1.x >= x) or
+                (dx < 0 and self.object1.x <= x)):
+                self.object1.x = x
                 break
-
-        if not x_colliding:
-            self.object1.x = orig_x
-
-        # slide along y
-        while True:
+        
+        # Slide the object towards its destination y value
+        y_colliding = False
+        while dy:
             self.object1.y += dy
             y_colliding = self.check_collision()
+
+            # If it collides against something, slide it back, stop
             if y_colliding: 
                 self.object1.y -= dy
                 break
-            elif self.object1.y == y:
+
+            # If we are at or past our destination, stop
+            if ((dy > 0 and self.object1.y >= y) or
+                (dy < 0 and self.object1.y <= y)):
+                self.object1.y = y
                 break
 
-        if not y_colliding:
-            self.object1.y = orig_y
+        # Moving down or right leaves a one pixel gap between this and
+        # other object. This is because SGL converts decimal
+        # coordinates to integers with int() when drawing, which
+        # always rounds down. We can correct that by rounding up any
+        # decimal coordinates if the object is moving in those
+        # directions.
+        if x_colliding and dx > 0:
+            self.object1.x = math.ceil(self.object1.x)
 
-        # self.check_collision(True)
+        if y_colliding and dy > 0:
+            self.object1.y = math.ceil(self.object1.y)
 
 class CollisionManager(object):
     def __init__(self):
@@ -134,10 +165,14 @@ if __name__ == "__main__":
     import random
 
     sgl.init(640, 480, 1)
+    # Enable this to test how it handles frame skipping
+    # sgl.set_fps_limit(10)
+    # On Windows, you can also move the window while holding down
+    # arrow keys to force it to not update for a while
     sgl.set_font(sgl.load_system_font("Arial", 20))
 
     def make_circle(radius, *color):
-        surface = sgl.make_surface(radius, radius)
+        surface = sgl.make_surface(radius, radius)#, 0.25)
         with sgl.with_buffer(surface):
             sgl.no_stroke()
             sgl.set_fill(*color)
@@ -211,6 +246,10 @@ if __name__ == "__main__":
 
             self.add_obstacles()
 
+            # To test exactness of sliding collision, enable this
+            # line. If the sliding collision is working correctly,
+            # the enemy killing callback should never activate.
+            # add_sliding(self.player, self.enemy_group)
             add(self.player, self.enemy_group, self.collision)
             add_sliding(self.player, self.obstacle_group)
 
@@ -245,6 +284,7 @@ if __name__ == "__main__":
 
         def collision(self, o1, o2, rect):
             o2.kill()
+            # print "hit", rect.to_tuple()
             # self.collision_rectangle = rect.to_tuple()
 
         def draw(self):
