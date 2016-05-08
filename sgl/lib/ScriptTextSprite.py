@@ -1,7 +1,7 @@
 import sgl
-from sgl.lib.Rect import Rect
 from sgl.lib.Sprite import Sprite, RectSprite, Scene
 import sgl.lib.Time as time
+import sgl.lib.Tween as tween
 import sgl.lib.Script as script
 from sgl.lib.TextSprite import TextSprite
 
@@ -79,11 +79,21 @@ class ScriptTextSprite(TextSprite):
         self.clear()
 
     @property
-    def is_dialogue_waiting(self):
+    def dialogue_finished(self):
         if self.interpreter:
             return self.interpreter.paused and self.interpreter.pause_code == self.pause_code
         else:
             return False
+
+    @property
+    def ctc_position(self):
+        x = self.last_line.width
+        y = self.get_line_y(self.last_line_index)
+        return x, y
+
+    @property
+    def ctc_size(self):
+        return self.last_line.height
 
     def advance(self):
         if self.clear_after_pause: 
@@ -91,10 +101,6 @@ class ScriptTextSprite(TextSprite):
             self.clear_after_pause = False
 
         self.interpreter.advance()
-        
-    def update(self):
-       if (sgl.on_mouse_up() or sgl.on_key_up(sgl.key.enter)) and self.is_dialogue_waiting:
-            self.advance()
 
 if __name__ == "__main__":
     sgl.init(640, 480, 1)
@@ -142,6 +148,42 @@ if __name__ == "__main__":
     [goto: main]
     """
 
+    class ContinueMarker(Sprite):
+        def __init__(self):
+            super(ContinueMarker, self).__init__()
+
+            self.visible = False
+
+            self.size = 20,20
+
+            surface = sgl.make_surface(self.width, self.height)
+
+            with sgl.with_buffer(surface):
+                sgl.set_stroke_weight(2)
+                sgl.set_stroke(1.0)
+                sgl.draw_line(0, 0, self.width-2, self.height/2)
+                sgl.draw_line(self.width-2, self.height/2, 0, self.height-2)
+                sgl.draw_line(0, 0, 0, self.height-2)
+        
+            self.surface = surface
+
+        def show(self, position):
+            self.position = position
+            self.x += 2
+
+            self.animation = tween.to(
+                self, {'x': self.x + 5},
+                0.5,
+                bounce=True
+            )
+
+            self.visible = True
+
+        def hide(self):
+            self.visible = False
+            self.animation.stop()
+            
+
     class TestScene(Scene):
         def __init__(self):
             super(TestScene, self).__init__()
@@ -161,6 +203,9 @@ if __name__ == "__main__":
             self.text_box.auto_clear = False
 
             self.add(self.text_box)
+
+            self.ctc = ContinueMarker()
+            self.text_box.add(self.ctc)
 
             self.interpreter = script.ScriptInterpreter()
 
@@ -186,6 +231,15 @@ if __name__ == "__main__":
             super(TestScene, self).update()
 
             time.update(sgl.get_dt())
+            tween.update(sgl.get_dt())
+
+            if self.text_box.dialogue_finished:
+                if not self.ctc.visible:
+                    self.ctc.show(self.text_box.ctc_position)
+
+                if sgl.on_mouse_up() or sgl.on_key_up(sgl.key.enter):
+                    self.text_box.advance()
+                    self.ctc.hide()
 
             sgl.set_title("FPS: " + str(sgl.get_fps()))
 

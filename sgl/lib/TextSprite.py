@@ -137,6 +137,10 @@ class TextSprite(Sprite):
     def last_line(self):
         return self.data[-1]
 
+    @property
+    def last_line_index(self):
+        return len(self.data)-1
+
     def new_line(self):
         self.data.append(Line())
         self.last_line.line_height = self.line_height
@@ -228,7 +232,22 @@ class TextSprite(Sprite):
                     self.last_line.ends_in_newline = True
                     self.new_line()
 
-    def draw(self):
+    def get_line_y(self, line_index):
+        y = 0
+        for index, line in enumerate(self.data):
+            if line_index == index: break
+            y += line.height + self.line_spacing
+        return y
+
+    def get_line_x(self, line_index):
+        if self.text_align:
+            line = self.data[line_index]
+            return (self.width * self.text_align
+                    - line.width * self.text_align)
+        else:
+            return 0
+
+    def draw_self(self):
         x = 0
         y = 0
         for line in self.data:
