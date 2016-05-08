@@ -19,6 +19,18 @@ class CollisionChecker(object):
         else:
             self.callback_args = -1
 
+        self.to_be_deleted = False
+        self.active = True
+
+    def stop(self):
+        self.to_be_deleted = True
+
+    def pause(self):
+        self.active = False
+
+    def resume(self):
+        self.active = True
+
     def do_callback(self, this, other):
         if self.callback_args == 0:
             self.callback()
@@ -34,7 +46,8 @@ class CollisionChecker(object):
             self.callback(this, other, intersection)
 
     def update(self):
-        self.check_collision(True)
+        if self.active:
+            self.check_collision(True)
 
     def check_collision(self, do_callback=False):
         # Only check collision against the other sprite's rectangle if
@@ -58,6 +71,8 @@ class CollisionChecker(object):
 
 class SlidingCollisionChecker(CollisionChecker):
     def update(self):
+        if not self.active: return
+
         # Collect previous and current position
         px = self.object1.prev_x
         py = self.object1.prev_y
@@ -65,8 +80,7 @@ class SlidingCollisionChecker(CollisionChecker):
         y = self.object1.y
 
         # If object has not moved, don't do anything
-        if px == x and py == y: 
-            return
+        if px == x and py == y: return
 
         # Set dx and dy based on what direction the object is moving
         if x > px: dx = 1
@@ -147,16 +161,20 @@ class CollisionManager(object):
         return self.checkers[-1]
 
     def update(self):
-        for checker in self.checkers:
+        for index, checker in enumerate(self.checkers):
+            if checker.to_be_deleted:
+                del self.checkers[index]
+                continue
+
             checker.update()
 
 manager = CollisionManager()
 
 def add(object1, object2, callback):
-    manager.add(object1, object2, callback)
+    return manager.add(object1, object2, callback)
 
 def add_sliding(object1, object2):
-    manager.add_sliding(object1, object2)
+    return manager.add_sliding(object1, object2)
 
 def update():
     manager.update()
@@ -250,7 +268,7 @@ if __name__ == "__main__":
             # line. If the sliding collision is working correctly,
             # the enemy killing callback should never activate.
             # add_sliding(self.player, self.enemy_group)
-            add(self.player, self.enemy_group, self.collision)
+            self.enemy_checker = add(self.player, self.enemy_group, self.collision)
             add_sliding(self.player, self.obstacle_group)
 
         def add_enemies(self):
@@ -303,6 +321,12 @@ if __name__ == "__main__":
                 self.obstacle_group.subsprites = []
                 self.add_obstacles()
                 # self.add_enemies()
+
+            if sgl.on_key_up(sgl.key.d):
+                if self.enemy_checker.active:
+                    self.enemy_checker.pause()
+                else:
+                    self.enemy_checker.resume()
 
             update()
 
