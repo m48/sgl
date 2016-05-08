@@ -100,23 +100,46 @@ if __name__ == "__main__":
     sgl.init(640, 480, 1)
 
     test_script = """
-[define-macro "=01" "[wait 1]"]
-[define-macro "=02" "[wait 2]"]
-[define-macro "/01" "[speed 1]"]
-[define-macro "/02" "[speed 2]"]
-[define-macro "/05" "[speed 5]"]
+[use pretty commands: yes]
+
+[define macro: "=01" "[wait: 1]"]
+[define macro: "=02" "[wait: 2]"]
+[define macro: "/01" "[speed: 1]"]
+[define macro: "/02" "[speed: 2]"]
+[define macro: "/03" "[speed: 3]"]
+[define macro: "/05" "[speed: 5]"]
 
 @main
+    [auto clear: no]
+
+    /03TEST 1=01
 
     /01What is this, you might ask?=01 This is a test 
     of the script interpreting and text box systems.=01 Specifically, 
     we want to see if it word wraps right.=01
 
-    It appears to.=01
+    It appears to.[pause]
 
-    Press a key here.[pause] Yay, we pasued in the middle.=01
+    [new page]Press a key here.[pause] Yay, we pasued in the middle.=01
 
     /05Yaaaaaaaaaaaaay[pause]
+
+    [new page]
+
+    /03TEST 2=01
+
+    [auto clear: yes]
+
+    /01You can also make the text box automatically clear after each 
+    line of dialogue.
+
+    ...like this.
+
+    It's pretty convenient for normal type of games, in which we
+    usually do not need to have new lines or paragraphs in the middle
+    of dialogue.
+
+    [goto: main]
     """
 
     class TestScene(Scene):
@@ -141,8 +164,17 @@ if __name__ == "__main__":
 
             self.interpreter = script.ScriptInterpreter(test_script, self.text_box.add_script_text)
             self.interpreter.load_commands(self.text_box)
+            self.interpreter.load_commands(self)
             self.interpreter.goto_label("main")
             self.interpreter.advance()
+
+        @script.script_command("goto")
+        def goto(self, label, interpreter):
+            interpreter.goto_label(label)
+
+        @script.script_command("auto clear")
+        def auto_clear(self, value, interpreter):
+             self.text_box.auto_clear = (value == "yes")
 
         def update(self):
             super(TestScene, self).update()
