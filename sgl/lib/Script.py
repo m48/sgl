@@ -29,11 +29,18 @@ class PastScriptBoundsError(ScriptInterpreterError): pass
 
 
 class ScriptInterpreter:
-    def __init__(self, text, text_function):
-        self.load_script(text)
-        self.add_text = text_function
+    def __init__(self):
+        self.script = None
+        self.paused = True
+        self.pause_code = -1
+
+        self.add_text = None
+
         self.commands = {}
         self.in_command_loop = False
+
+    def set_add_text(self, function):
+        self.add_text = function
 
     def load_script(self, text):
         self.script = script.ScriptParser(text).parse()
@@ -265,11 +272,13 @@ if __name__ == "__main__":
     g = Graphics()
     ti = System()
 
-    i = ScriptInterpreter(text, t.add)
+    i = ScriptInterpreter()
+    i.set_add_text(t.add)
     i.load_commands(t)
     i.load_commands(g)
     i.load_commands(ti)
 
+    i.load_script(text)
     i.goto_label("test")
     while True:
         i.advance()

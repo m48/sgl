@@ -162,9 +162,15 @@ if __name__ == "__main__":
 
             self.add(self.text_box)
 
-            self.interpreter = script.ScriptInterpreter(test_script, self.text_box.add_script_text)
+            self.interpreter = script.ScriptInterpreter()
+
+            self.interpreter.set_add_text(self.text_box.add_script_text)
+
             self.interpreter.load_commands(self.text_box)
             self.interpreter.load_commands(self)
+
+            self.interpreter.load_script(test_script)
+
             self.interpreter.goto_label("main")
             self.interpreter.advance()
 
