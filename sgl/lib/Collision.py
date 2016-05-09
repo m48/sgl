@@ -70,6 +70,13 @@ class CollisionChecker(object):
         return False
 
 class SlidingCollisionChecker(CollisionChecker):
+    def do_callback(self, direction=[]):
+        if self.callback_args == 0:
+            self.callback()
+
+        elif self.callback_args == 1:
+            self.callback(direction)
+
     def update(self):
         if not self.active: return
 
@@ -144,19 +151,30 @@ class SlidingCollisionChecker(CollisionChecker):
         if y_colliding and dy > 0:
             self.object1.y = math.ceil(self.object1.y)
 
+        if x_colliding or y_colliding:
+            if self.callback_args == 0:
+                self.do_callback()
+            elif self.callback_args == 1:
+                direction = []
+                if dx < 0 and x_colliding: direction.append("left")
+                if dx > 0 and x_colliding: direction.append("right")
+                if dy < 0 and y_colliding: direction.append("top")
+                if dy > 0 and y_colliding: direction.append("bottom")
+                self.do_callback(direction)
+
 class CollisionManager(object):
     def __init__(self):
         self.checkers = []
 
-    def add(self, object1, object2, callback):
+    def add(self, object1, object2, callback=None):
         self.checkers.append(
             CollisionChecker(object1, object2, callback)
         )
         return self.checkers[-1]
 
-    def add_sliding(self, object1, object2):
+    def add_sliding(self, object1, object2, callback=None):
         self.checkers.append(
-            SlidingCollisionChecker(object1, object2, None)
+            SlidingCollisionChecker(object1, object2, callback)
         )
         return self.checkers[-1]
 
@@ -173,8 +191,8 @@ manager = CollisionManager()
 def add(object1, object2, callback):
     return manager.add(object1, object2, callback)
 
-def add_sliding(object1, object2):
-    return manager.add_sliding(object1, object2)
+def add_sliding(object1, object2, callback=None):
+    return manager.add_sliding(object1, object2, callback)
 
 def update():
     manager.update()
@@ -263,7 +281,7 @@ if __name__ == "__main__":
             # the enemy killing callback should never activate.
             # add_sliding(self.player, self.enemy_group)
             self.enemy_checker = add(self.player, self.enemy_group, self.collision)
-            add_sliding(self.player, self.obstacle_group)
+            add_sliding(self.player, self.obstacle_group) # , self.print_direction)
 
         def add_enemies(self):
             for i in range(10):
@@ -308,6 +326,9 @@ if __name__ == "__main__":
             o2.kill()
             # print "hit", rect.to_tuple()
             # self.collision_rectangle = rect.to_tuple()
+
+        def print_direction(self, direction):
+            print direction
 
         def draw(self):
             super(TestScene, self).draw()
