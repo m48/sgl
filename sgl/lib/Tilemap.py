@@ -80,6 +80,9 @@ class Tilemap(Sprite):
 
         return False
 
+    def is_being_collided(self, other):
+        return self.collision_in(other.world_collision_rect)
+
     def coords_at(self, x, y, screen=True):
         if screen:
             x -= int(self.screen_x)

@@ -59,6 +59,12 @@ class Sprite(object):
         # This is the bounding box. Don't change it manually.
         self._rect = Rect()
 
+        # 
+        self.solid = True
+
+        # 
+        self._collision_rect = None
+
         # Loads the graphic
         if graphic: 
             self.load_surface(graphic)
@@ -95,6 +101,55 @@ class Sprite(object):
         self._rect.width = self.width
         self._rect.height = self.height
         return self._rect
+
+    @property
+    def collision_rect(self):
+        if self._collision_rect:
+            return self._collision_rect
+        else:
+            return Rect(0, 0, self.width, self.height)
+
+    @collision_rect.setter
+    def collision_rect(self, value):
+        if isinstance(value, Rect):
+            self._collision_rect = value
+        else:
+            self._collision_rect = Rect(*value)
+
+    @property
+    def world_collision_rect(self):
+        real_anchor = self.real_anchor
+        rect = Rect()
+
+        rect.x = self.x + self.collision_rect.x - real_anchor[0]
+        rect.y = self.y + self.collision_rect.y - real_anchor[1]
+        rect.width = self.collision_rect.width
+        rect.height = self.collision_rect.height
+        
+        return rect
+
+    @property
+    def screen_collision_rect(self):
+        real_anchor = self.real_anchor
+        rect = Rect()
+
+        rect.x = self.screen_x + self.collision_rect.x - real_anchor[0]
+        rect.y = self.screen_y + self.collision_rect.y - real_anchor[1]
+        rect.width = self.collision_rect.width
+        rect.height = self.collision_rect.height
+        
+        return rect
+
+    def is_colliding_with(self, other):
+        if not self.solid or not other.solid:
+            return False
+
+        return other.is_being_collided(self)
+
+    def is_being_collided(self, other):
+        return self.world_collision_rect.is_in(
+            other.world_collision_rect
+        )
 
     # Internally, positions are stored as x and y values, but you can
     # deal with them as tuples if you want

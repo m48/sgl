@@ -55,14 +55,14 @@ class CollisionChecker(object):
         # group, and we don't want to test the rectangle of the whole
         # group
         if self.object2.surface: 
-            if self.object1.rect.is_in(self.object2.rect):
+            if self.object1.is_colliding_with(self.object2):
                 if do_callback:
                     self.do_callback(self.object1, self.object2)
                 return True
         
         # Check collision against subsprites, if it's a group
         for sprite in self.object2.subsprites:
-            if self.object1.rect.is_in(sprite.rect):
+            if self.object1.is_colliding_with(sprite):
                 if do_callback:
                     self.do_callback(self.object1, sprite)
                 return True
@@ -203,6 +203,7 @@ if __name__ == "__main__":
             super(Enemy, self).__init__()
 
             self.load_surface(make_circle(32, (1.0, 0.5, 0.5)))
+            self.collision_rect = (0, 16, 32, 16)
 
     class Obstacle(RectSprite):
         def __init__(self):
@@ -216,6 +217,7 @@ if __name__ == "__main__":
             super(Player, self).__init__()
 
             self.load_surface(make_circle(32, 1.0))
+            self.collision_rect = (0, 16, 32, 16)
 
         def update(self):
             super(Player, self).update()
