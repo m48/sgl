@@ -1,5 +1,5 @@
 import sgl
-from sgl.lib.Sprite import Sprite, AnimatedSprite, RectSprite, Scene, PerspectiveGroup
+from sgl.lib.Sprite import Sprite, SpriteGroup, AnimatedSprite, RectSprite, Scene, PerspectiveGroup
 from sgl.lib.Rect import Rect
 
 import inspect
@@ -204,6 +204,7 @@ if __name__ == "__main__":
 
             self.load_surface(make_circle(32, (1.0, 0.5, 0.5)))
             self.collision_rect = (0, 32-8, 32, 8)
+            self.anchor = 0, 1.0
 
     class Obstacle(RectSprite):
         def __init__(self):
@@ -218,6 +219,8 @@ if __name__ == "__main__":
 
             self.load_surface(make_circle(32, 1.0))
             self.collision_rect = (0, 32-8, 32, 8)
+            self.anchor = 0, 1.0
+            self.position = 0,32
 
         def update(self):
             super(Player, self).update()
@@ -241,20 +244,15 @@ if __name__ == "__main__":
             self.collision_rectangle = None
 
             self.persp = PerspectiveGroup()
-            self.persp.fill()
-
-            self.enemy_group = Sprite()
-            self.enemy_group.fill()
-
-            self.persp.add(self.enemy_group)
+            self.add(self.persp)
 
             self.player = Player()
             self.persp.add(self.player)
 
-            self.add(self.persp)
+            self.enemy_group = SpriteGroup()
+            self.persp.add(self.enemy_group)
 
-            self.obstacle_group = Sprite()
-            self.obstacle_group.fill()
+            self.obstacle_group = SpriteGroup()
             self.persp.add(self.obstacle_group)
 
             self.add_obstacles()
@@ -269,17 +267,21 @@ if __name__ == "__main__":
 
         def add_enemies(self):
             for i in range(10):
-                x = random.randrange(0, self.width)
-                y = random.randrange(0, self.height)
-
                 enemy = Enemy()
-                enemy.position = x, y
 
-                for i in self.obstacle_group.subsprites:
-                    while enemy.is_colliding_with(i):
-                        x = random.randrange(0, self.width)
-                        y = random.randrange(0, self.height)
-                        enemy.position = x, y
+                while True:
+                    x = random.randrange(0, self.width)
+                    y = random.randrange(0, self.height)
+                    enemy.position = x, y
+
+                    for i in self.obstacle_group.subsprites:
+                        if enemy.is_colliding_with(i):
+                            colliding = True
+                            break
+                        else:
+                            colliding = False
+
+                    if not colliding: break
 
                 self.enemy_group.add(enemy)
 

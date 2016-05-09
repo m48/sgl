@@ -17,6 +17,11 @@ class Sprite(object):
         # Whether SpriteGroups will automatically delete this object
         # on the next frame
         self.to_be_deleted = False
+
+        # Whether this object should be assumed to exist everywhere by
+        # the drawing functions (for example, for a group containing
+        # objects that spread across a large area)
+        self.infinite_space = False
    
         # Store world coordinates
         self.x, self.y = 0, 0      
@@ -56,13 +61,13 @@ class Sprite(object):
         # not be affected by camera movement and stuff
         self.fixed = False
 
-        # This is the bounding box. Don't change it manually.
+        # The drawing bounding box. Don't change it manually.
         self._rect = Rect()
 
-        # 
+        # Whether collision functions should bother with this object
         self.solid = True
 
-        # 
+        # The object's collision bounding box
         self._collision_rect = None
 
         # Loads the graphic
@@ -271,7 +276,7 @@ class Sprite(object):
         for sprite in self.subsprites:
             sprite.screen_x, sprite.screen_y = sprite.world_to_screen(*sprite.position)
 
-            if self.view_rect:
+            if self.view_rect and not sprite.infinite_space:
                 if (sprite.screen_rect.is_in(self.view_rect)):
                     sprite.draw()
             else:
@@ -465,8 +470,24 @@ class Camera(object):
         return (x - self.x*parallax, y - self.y*parallax) 
 
 # Specialized types of groups
-class PerspectiveGroup(Sprite):
+class SpriteGroup(Sprite):
+    def __init__(self):
+        super(SpriteGroup, self).__init__()
+        
+        self.infinite_space = True
+
+class PerspectiveGroup(SpriteGroup):
+    def __init__(self):
+        super(PerspectiveGroup, self).__init__()
+
+        self.max_level = 100
+        self.recursion_level = 0
+
     def draw_children(self):
+        # Just re-implementing most of draw_children. Involves little
+        # more copy+paste than I'd like, but I can't think of a better
+        # way to do it
+
         if self.subsprites == []: return
         # Most accurate way, but slower
         # Use this if things get stupid again
@@ -477,11 +498,17 @@ class PerspectiveGroup(Sprite):
         for sprite in subsprites:
             sprite.screen_x, sprite.screen_y = sprite.world_to_screen(*sprite.position)
 
-            if self.view_rect:
-                if (sprite.screen_rect.is_in(self.view_rect)):
-                    sprite.draw_self()
+            if (hasattr(sprite, "no_perspective") 
+                and sprite.no_perspective):
+                draw_function = sprite.draw
             else:
-                sprite.draw_self()
+                draw_function = sprite.draw_self
+
+            if self.view_rect and not sprite.infinite_space:
+                if (sprite.screen_rect.is_in(self.view_rect)):
+                    draw_function()
+            else:
+                draw_function()
 
     def get_subsprites_flat(self):
         subsprites = self.subsprites[:]
@@ -492,7 +519,18 @@ class PerspectiveGroup(Sprite):
     def get_subsprites(self, sprite):
         subsprites = sprite.subsprites[:]
         for item in sprite.subsprites:
-            subsprites += self.get_subsprites(item)
+            if ((hasattr(item, "no_perspective") 
+                 and item.no_perspective) or 
+                self.recursion_level >= self.max_level):
+                subsprites.append(item)
+                if item.subsprites:
+                    item.no_perspective = True
+
+            else:
+                self.recursion_level += 1
+                subsprites += self.get_subsprites(item)
+                self.recursion_level -= 1
+
         return subsprites
     
 class Scene(Sprite):
