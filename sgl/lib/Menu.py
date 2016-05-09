@@ -24,9 +24,7 @@ class MenuItem(Sprite):
     def update(self):
         super(MenuItem, self).update()
 
-    def draw(self):
-        super(MenuItem, self).draw()    
-
+    def draw_self(self):
         with sgl.with_state():
             sgl.draw_text(self.text, self.screen_x, self.screen_y)
             if self.draw_debug and self.selected:
@@ -63,6 +61,9 @@ class Menu(Sprite):
 
         self.visible = False
 
+    def on_add(self):
+        self.update_selection()
+
     def show(self):
         self.visible = True
 
@@ -93,7 +94,6 @@ class Menu(Sprite):
         self.update_screen_positions()
                 
         self.set_selection(self.selected_index, system=True)
-        
 
     @property
     def first_visible_index(self):
@@ -302,9 +302,7 @@ class ButtonMenuItem(Sprite):
     def update(self):
         super(ButtonMenuItem, self).update()
 
-    def draw(self):
-        super(ButtonMenuItem, self).draw()    
-
+    def draw_self(self):
         with sgl.with_state():
             if self.selected:
                 sgl.set_fill(0.25)
@@ -491,31 +489,18 @@ if __name__ == "__main__":
 
         def show_other_menu(self):
             menu = self.add(TestMenu2())
-
-            menu.update_selection()
             menu.show()
-            menu.update_screen_positions()
-
             self.focused = False
 
         def show_scroll(self):
             menu = self.add(TestMenu3())
-
-            menu.update_selection()
             menu.show()
-            menu.update_screen_positions()
-
             self.focused = False
 
         def show_buttons(self):
             menu = self.scene.add(TestMenu4())
-
-            menu.parent_menu = self
-
-            # menu.update_selection()
             menu.show()
-            # menu.update_screen_positions()
-
+            menu.parent_menu = self
             self.focused = False
 
 

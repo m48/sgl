@@ -68,8 +68,12 @@ class Sprite(object):
     def add(self, sprite):
         sprite.parent = self
         self.subsprites.append(sprite)
+        sprite.on_add()
 
         return sprite
+
+    def on_add(self):
+        pass
 
     # User facing access
     @property
@@ -165,6 +169,8 @@ class Sprite(object):
 
     def preupdate(self):
         self.prev_x, self.prev_y = self.position
+
+        # Because we might need to know in update()
         self.screen_x, self.screen_y = self.world_to_screen(*self.position)
 
     def update(self):
@@ -180,12 +186,15 @@ class Sprite(object):
     def draw(self):
         if not self.visible: return
 
+        # Because update might have changed things, and we want to
+        # draw it in the right place
+        # self.screen_x, self.screen_y = self.world_to_screen(*self.position)
+
         self.draw_self()
         self.draw_children()
 
     def draw_self(self):
         if self.surface:
-
             a_x, a_y = self.real_anchor
             sgl.blitf(
                 self.surface, 
@@ -199,7 +208,14 @@ class Sprite(object):
             # )
 
     def draw_children(self):
+        if self.subsprites == []: return
+        # Most accurate way, but slower
+        # Use this if things get stupid again
+        # self.update_screen_positions()
+
         for sprite in self.subsprites:
+            sprite.screen_x, sprite.screen_y = sprite.world_to_screen(*sprite.position)
+
             if self.view_rect:
                 if (sprite.screen_rect.is_in(self.view_rect)):
                     sprite.draw()
@@ -348,9 +364,7 @@ class ShapeSprite(Sprite):
     def draw_shape(self):
         pass
 
-    def draw(self):
-        if not self.visible: return
-
+    def draw_self(self):
         with sgl.with_state():
             if self.no_stroke:
                 sgl.no_stroke()
@@ -364,8 +378,6 @@ class ShapeSprite(Sprite):
                 sgl.set_fill(self.fill_color)
 
             self.draw_shape()
-
-        super(ShapeSprite, self).draw()
 
 class RectSprite(ShapeSprite):
     def draw_shape(self):
@@ -500,7 +512,7 @@ if __name__ == "__main__":
             if sgl.is_key_pressed(sgl.key.left): 
                 self.camera.x += v * sgl.get_dt()
 
-            sgl.set_title("FPS: " + str(sgl.get_fps()))
+            sgl.set_title("FPS: " + str(int(sgl.get_fps())))
 
     def make_circle(radius, *color):
         surface = sgl.make_surface(radius, radius)
