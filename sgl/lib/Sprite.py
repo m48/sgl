@@ -465,6 +465,36 @@ class Camera(object):
         return (x - self.x*parallax, y - self.y*parallax) 
 
 # Specialized types of groups
+class PerspectiveGroup(Sprite):
+    def draw_children(self):
+        if self.subsprites == []: return
+        # Most accurate way, but slower
+        # Use this if things get stupid again
+        # self.update_screen_positions()
+
+        subsprites = sorted(self.get_subsprites(self), key = lambda o: o.y)
+
+        for sprite in subsprites:
+            sprite.screen_x, sprite.screen_y = sprite.world_to_screen(*sprite.position)
+
+            if self.view_rect:
+                if (sprite.screen_rect.is_in(self.view_rect)):
+                    sprite.draw_self()
+            else:
+                sprite.draw_self()
+
+    def get_subsprites_flat(self):
+        subsprites = self.subsprites[:]
+        for item in self.subsprites:
+            subsprites += item.subsprites
+        return subsprites
+
+    def get_subsprites(self, sprite):
+        subsprites = sprite.subsprites[:]
+        for item in sprite.subsprites:
+            subsprites += self.get_subsprites(item)
+        return subsprites
+    
 class Scene(Sprite):
     def __init__(self):
         super(Scene, self).__init__()

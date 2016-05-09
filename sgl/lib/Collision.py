@@ -1,5 +1,5 @@
 import sgl
-from sgl.lib.Sprite import Sprite, AnimatedSprite, RectSprite, Scene
+from sgl.lib.Sprite import Sprite, AnimatedSprite, RectSprite, Scene, PerspectiveGroup
 from sgl.lib.Rect import Rect
 
 import inspect
@@ -203,7 +203,7 @@ if __name__ == "__main__":
             super(Enemy, self).__init__()
 
             self.load_surface(make_circle(32, (1.0, 0.5, 0.5)))
-            self.collision_rect = (0, 16, 32, 16)
+            self.collision_rect = (0, 32-8, 32, 8)
 
     class Obstacle(RectSprite):
         def __init__(self):
@@ -217,7 +217,7 @@ if __name__ == "__main__":
             super(Player, self).__init__()
 
             self.load_surface(make_circle(32, 1.0))
-            self.collision_rect = (0, 16, 32, 16)
+            self.collision_rect = (0, 32-8, 32, 8)
 
         def update(self):
             super(Player, self).update()
@@ -240,22 +240,25 @@ if __name__ == "__main__":
 
             self.collision_rectangle = None
 
+            self.persp = PerspectiveGroup()
+            self.persp.fill()
+
             self.enemy_group = Sprite()
             self.enemy_group.fill()
 
-            self.add_enemies()
+            self.persp.add(self.enemy_group)
 
-            self.add(self.enemy_group)
+            self.player = Player()
+            self.persp.add(self.player)
+
+            self.add(self.persp)
 
             self.obstacle_group = Sprite()
             self.obstacle_group.fill()
-
-            self.add(self.obstacle_group)
-
-            self.player = Player()
-            self.add(self.player)
+            self.persp.add(self.obstacle_group)
 
             self.add_obstacles()
+            self.add_enemies()
 
             # To test exactness of sliding collision, enable this
             # line. If the sliding collision is working correctly,
@@ -271,6 +274,12 @@ if __name__ == "__main__":
 
                 enemy = Enemy()
                 enemy.position = x, y
+
+                for i in self.obstacle_group.subsprites:
+                    while enemy.is_colliding_with(i):
+                        x = random.randrange(0, self.width)
+                        y = random.randrange(0, self.height)
+                        enemy.position = x, y
 
                 self.enemy_group.add(enemy)
 
@@ -312,8 +321,9 @@ if __name__ == "__main__":
 
             if sgl.on_key_up(sgl.key.space):
                 self.obstacle_group.subsprites = []
+                self.enemy_group.subsprites = []
                 self.add_obstacles()
-                # self.add_enemies()
+                self.add_enemies()
 
             if sgl.on_key_up(sgl.key.d):
                 if self.enemy_checker.active:
