@@ -407,6 +407,8 @@ class Scene(Sprite):
             sgl.get_width(), sgl.get_height()
         )
 
+        self.background_color = 0
+
         self.size = sgl.get_width(), sgl.get_height()
 
         self.camera = Camera()
@@ -414,6 +416,11 @@ class Scene(Sprite):
     def add(self, sprite):
         sprite.scene = self
         return super(Scene, self).add(sprite)
+
+    def draw(self):
+        sgl.clear(self.background_color)
+
+        super(Scene, self).draw()
 
 class Viewport(Sprite):
     def __init__(self):
@@ -455,6 +462,8 @@ if __name__ == "__main__":
         def __init__(self):
             super(TestScene, self).__init__()
 
+            self.background_color = 0.5
+
             blackness = RectSprite()
 
             blackness.no_stroke = True
@@ -492,13 +501,6 @@ if __name__ == "__main__":
                 self.camera.x += v * sgl.get_dt()
 
             sgl.set_title("FPS: " + str(sgl.get_fps()))
-
-        def draw(self):
-            # Make it so there's no weird trailing when the camera
-            # goes off the field
-            sgl.clear(0.5)
-
-            super(TestScene, self).draw()
 
     def make_circle(radius, *color):
         surface = sgl.make_surface(radius, radius)

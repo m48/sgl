@@ -197,15 +197,6 @@ if __name__ == "__main__":
         def __init__(self):
             super(TestScene, self).__init__()
 
-            blackness = RectSprite()
-
-            blackness.no_stroke = True
-            blackness.fill_color = 0
-            blackness.fixed = True
-            blackness.fill()
-
-            self.add(blackness)
-
             self.map = Tilemap()
 
             grass = sgl.make_surface(32, 32, (0,1.0,0))

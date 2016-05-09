@@ -238,14 +238,6 @@ if __name__ == "__main__":
         def __init__(self):
             super(TestScene, self).__init__()
 
-            blackness = RectSprite()
-
-            blackness.no_stroke = True
-            blackness.fill_color = 0
-            blackness.fill()
-
-            self.add(blackness)
-
             self.flow_rect = RectSprite()
 
             self.flow_rect.size = 0,0
@@ -348,7 +340,7 @@ if __name__ == "__main__":
 
             self.flow.reflow()
 
-            sgl.set_title("FPS: " + str(sgl.get_fps()))
+            sgl.set_title("FPS: " + str(int(sgl.get_fps())))
 
     scene = TestScene()
 

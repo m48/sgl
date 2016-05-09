@@ -238,15 +238,6 @@ if __name__ == "__main__":
 
             self.collision_rectangle = None
 
-            blackness = RectSprite()
-
-            blackness.no_stroke = True
-            blackness.fill_color = 0
-            blackness.fixed = True
-            blackness.fill()
-
-            self.add(blackness)
-
             self.enemy_group = Sprite()
             self.enemy_group.fill()
 

@@ -574,13 +574,7 @@ if __name__ == "__main__":
         def __init__(self):
             super(TestScene, self).__init__()
 
-            blackness = RectSprite()
-
-            blackness.no_stroke = True
-            blackness.fill_color = 0.25
-            blackness.fill()
-
-            self.add(blackness)
+            self.background_color = 0.25
 
             menu = TestMenu1()
             self.add(menu)
@@ -592,7 +586,7 @@ if __name__ == "__main__":
             tween.update(sgl.get_dt())
             time.update(sgl.get_dt())
 
-            sgl.set_title("FPS: " + str(sgl.get_fps()))
+            sgl.set_title("FPS: " + str(int(sgl.get_fps())))
 
     scene = TestScene()
 

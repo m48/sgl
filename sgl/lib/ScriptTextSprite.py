@@ -188,14 +188,6 @@ if __name__ == "__main__":
         def __init__(self):
             super(TestScene, self).__init__()
 
-            bg = RectSprite()
-
-            bg.fill_color = 0
-            bg.no_stroke = True
-            bg.fill()
-
-            self.add(bg)
-
             self.text_box = ScriptTextSprite()
             self.text_box.position = 32, 32
             self.text_box.size = sgl.get_width()-32*2, 300
@@ -241,7 +233,7 @@ if __name__ == "__main__":
                     self.text_box.advance()
                     self.ctc.hide()
 
-            sgl.set_title("FPS: " + str(sgl.get_fps()))
+            sgl.set_title("FPS: " + str(int(sgl.get_fps())))
 
     scene = TestScene()
 
