@@ -58,6 +58,9 @@ class Sprite(object):
         # A link to the scene in particular, for convenience
         self.scene = None
 
+        # A link to the application object, to switch scenes and stuff
+        self.app = None
+
         # What to divide position by for parallax effects
         self.parallax = 1
 
@@ -93,6 +96,8 @@ class Sprite(object):
 
     def add(self, sprite):
         sprite.parent = self
+        sprite.scene = self.scene
+        sprite.app = self.app
         self.subsprites.append(sprite)
         sprite.on_add()
 
@@ -589,6 +594,20 @@ class PerspectiveGroup(SpriteGroup):
                 self.recursion_level -= 1
 
         return subsprites
+
+class App(object):
+    def __init__(self, first_scene):
+        self.switch_scene(first_scene)
+
+    def switch_scene(self, scene):
+        self.scene = scene
+        scene.app = self
+
+    def update(self):
+        self.scene.update()
+
+    def draw(self):
+        self.scene.draw()
     
 class Scene(Sprite):
     def __init__(self):
@@ -605,9 +624,7 @@ class Scene(Sprite):
 
         self.camera = Camera()
 
-    def add(self, sprite):
-        sprite.scene = self
-        return super(Scene, self).add(sprite)
+        self.scene = self
 
     def draw(self):
         sgl.clear(self.background_color)
@@ -800,7 +817,7 @@ if __name__ == "__main__":
             else:
                 self.surface = self.normal_circle
 
-    scene = TestScene()
+    app = App(TestScene())
 
-    sgl.run(scene.update, scene.draw)
+    sgl.run(app.update, app.draw)
 

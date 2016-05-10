@@ -1,6 +1,6 @@
 import sgl
 from sgl.lib.Rect import Rect
-from sgl.lib.Sprite import Sprite, RectSprite, Scene
+from sgl.lib.Sprite import Sprite, RectSprite, Scene, App
 import sgl.lib.Time as time
 
 def is_string(thing):
@@ -414,7 +414,7 @@ if __name__ == "__main__":
 
             sgl.set_title("FPS: " + str(int(sgl.get_fps())))
 
-    scene = TestScene()
+    app = App(TestScene())
 
-    sgl.run(scene.update, scene.draw)
+    sgl.run(app.update, app.draw)
 

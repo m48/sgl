@@ -1,5 +1,5 @@
 import sgl
-from sgl.lib.Sprite import Sprite, AnimatedSprite, RectSprite, Scene
+from sgl.lib.Sprite import Sprite, AnimatedSprite, RectSprite, Scene, App
 from sgl.lib.Rect import Rect
 
 class Tilemap(Sprite):
@@ -315,6 +315,7 @@ if __name__ == "__main__":
                 
             sgl.set_title(map_text + " FPS: " + str(int(sgl.get_fps())))
 
-    scene = TestScene()
+    app = App(TestScene())
 
-    sgl.run(scene.update, scene.draw)
+    sgl.run(app.update, app.draw)
+

@@ -1,5 +1,5 @@
 import sgl
-from sgl.lib.Sprite import Sprite, SpriteGroup, AnimatedSprite, RectSprite, Scene, PerspectiveGroup
+from sgl.lib.Sprite import *
 from sgl.lib.Rect import Rect
 
 import inspect
@@ -358,6 +358,7 @@ if __name__ == "__main__":
 
             sgl.set_title("FPS: " + str(int(sgl.get_fps())))
 
-    scene = TestScene()
+    app = App(TestScene())
 
-    sgl.run(scene.update, scene.draw)
+    sgl.run(app.update, app.draw)
+
