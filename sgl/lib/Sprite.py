@@ -1,9 +1,13 @@
 import sgl
 from sgl.lib.Rect import Rect
 
-# Todo:
-# * Some type of event propagation (so you can stop mouse clicking from happening to overlapped things)
-# * Effects
+def is_string(thing):
+    """ Returns whether `thing` is a string or not. """
+
+    if 'basestring' not in globals():
+        return isinstance(thing, str)
+    else:
+        return isinstance(thing, basestring)
 
 class Sprite(object):
     def __init__(self, graphic=None):
@@ -368,6 +372,7 @@ class AnimatedSprite(Sprite):
     def animation(self, value):
         self.anim_reset()
         self.anim_name = value
+        self.anim_update_frame()
 
     @property
     def playing(self):
@@ -380,7 +385,6 @@ class AnimatedSprite(Sprite):
 
     def play(self):
         self.anim_playing = True
-        self.anim_update_frame()
 
     def pause(self):
         self.anim_playing = False
@@ -389,7 +393,17 @@ class AnimatedSprite(Sprite):
         self.anim_reset()
         self.anim_playing = False
 
+    def do_callback(self, value):
+        if is_string(value):
+            getattr(self, value)()
+        elif hasattr(value, "__call__"):
+            value()
+        else:
+            getattr(self, value[0])(*value[1:])
+
     def anim_update_frame(self):
+        if self.anim_index >= self.anim_length: return
+
         self.anim_time = 0
 
         frame = self.anim_current_frame
@@ -398,13 +412,21 @@ class AnimatedSprite(Sprite):
 
         if complex_frame:
             if "frame" not in frame:
-                self.anim_frame_length = frame["default_length"]
+                if "default_length" in frame:
+                    self.anim_frame_length = frame["default_length"]
+
+                if "callback" in frame:
+                    self.do_callback(frame["callback"])
+
                 self.anim_index += 1
                 self.anim_update_frame()
                 return
 
             self.surface = self.frames[frame["frame"]]
             self.anim_next_frame_time = frame.get("length", length)
+
+            if "callback" in frame:
+                self.do_callback(frame["callback"])
 
         else:
             self.surface = self.frames[frame]
@@ -421,7 +443,7 @@ class AnimatedSprite(Sprite):
             self.anim_index += 1
             if self.anim_index >= self.anim_length:
                 self.anim_index = 0
-                # loop restricting/callback logic here?
+                # loop restricting logic here?
 
             self.anim_update_frame()
         # maybe awkward that this does not attempt to make up for
@@ -692,10 +714,10 @@ if __name__ == "__main__":
 
         animations = {
             "pulse": [
-                {"default_length": 0.25/2},
+                {"default_length": 1/8},
                 {"frame": 0, "length": 1},
                 1,2,3,
-                {"frame": 4, "length": 1},
+                {"frame": 4, "length": 1},#, "callback": "pause"},
                 3,2,1,
             ],
             "crazy": range(4),
