@@ -108,8 +108,8 @@ if __name__ == "__main__":
     test_script = """
 [use pretty commands: yes]
 
-[define macro: "=01" "[wait: 1]"]
-[define macro: "=02" "[wait: 2]"]
+[define macro: "=01" "[wait: 0.5]"]
+[define macro: "=02" "[wait: 1]"]
 [define macro: "/01" "[speed: 1]"]
 [define macro: "/02" "[speed: 2]"]
 [define macro: "/03" "[speed: 3]"]
@@ -154,7 +154,7 @@ if __name__ == "__main__":
 
             self.visible = False
 
-            self.size = 20,20
+            self.size = 20,25
 
             surface = sgl.make_surface(self.width, self.height)
 
@@ -188,11 +188,13 @@ if __name__ == "__main__":
         def __init__(self):
             super(TestScene, self).__init__()
 
+            self.background_color = 0.5
+
             self.text_box = ScriptTextSprite()
             self.text_box.position = 32, 32
             self.text_box.size = sgl.get_width()-32*2, 300
-            self.text_box.font = sgl.load_system_font("Arial", 20)
-            self.text_box.auto_clear = False
+            self.text_box.font = sgl.load_system_font("Arial", 25)
+            self.text_box.shadow = (0, 1)
 
             self.add(self.text_box)
 

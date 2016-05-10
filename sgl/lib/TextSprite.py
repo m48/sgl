@@ -12,14 +12,15 @@ def is_string(thing):
         return isinstance(thing, basestring)
 
 class Block(object):
-    def __init__(self, font, color, text):
+    def __init__(self, font=None, color=0, shadow=None, text=""):
         self.font = font
         self.color = color
+        self.shadow = shadow
         self.text = text
 
     @property
     def style(self):
-        return (self.font, self.color)
+        return (self.font, self.color, self.shadow)
 
     @property
     def width(self):
@@ -42,6 +43,11 @@ class Block(object):
 
         with sgl.with_state():
             sgl.set_font(self.font)
+            if self.shadow:
+                color = self.shadow[0]
+                offset = self.shadow[1]
+                sgl.set_fill(color)
+                sgl.draw_text(self.text, x+offset, y+offset)
             sgl.set_fill(self.color)
             sgl.draw_text(self.text, x, y)
 
@@ -112,6 +118,7 @@ class TextSprite(Sprite):
 
         self.font = None
         self.color = (1.0,)
+        self.shadow = None
         self.line_height = 0
         self.auto_height = False
         self.text_align = 0
@@ -131,7 +138,7 @@ class TextSprite(Sprite):
 
     @actual_current_word.setter
     def actual_current_word(self, value):
-        self.actual_word_box = Block(self.font, self.color, value)
+        self.actual_word_box = Block(self.font, self.color, self.shadow, value)
 
     @property
     def last_line(self):
@@ -194,7 +201,7 @@ class TextSprite(Sprite):
         for line in data:
             for block in line.items:
                 # print block.text
-                self.font, self.color = block.style
+                self.font, self.color, self.shadow = block.style
                 self.add_text(block.text)
 
             if line.ends_in_newline:
@@ -225,7 +232,13 @@ class TextSprite(Sprite):
                 result += char
 
             if char in watch_chars:
-                self.add_block(Block(self.font, self.color, result))
+                block = Block()
+                block.font = self.font
+                block.color = self.color
+                block.shadow = self.shadow
+                block.text = result
+                self.add_block(block)
+
                 result = ""
 
                 if char == "\n": 
@@ -299,6 +312,7 @@ if __name__ == "__main__":
 
             self.text.font = self.f2
             self.text.color = 0.5
+            self.text.shadow = (0, 1)
             self.text.add_text("no really and stuff.")
 
             self.add(self.text)
