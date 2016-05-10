@@ -70,6 +70,17 @@ class Sprite(object):
         # The object's collision bounding box
         self._collision_rect = None
 
+        # Same effects as sgl.blit
+        # Note: Currently these do not propagate to child sprites,
+        # like they probably should. They might sometime in the
+        # future. Currently, it sounds way too complicated for me to
+        # deal with right now. I'm on a deadline for school. :(
+        self.flip_h = False
+        self.flip_v = False
+        self.alpha = 255
+        self.angle = 0
+        self.pretty = False
+
         # Loads the graphic
         if graphic: 
             self.load_surface(graphic)
@@ -255,17 +266,23 @@ class Sprite(object):
 
     def draw_self(self):
         if self.surface:
-            a_x, a_y = self.real_anchor
-            sgl.blitf(
-                self.surface, 
-                self.screen_x - a_x, self.screen_y - a_y
-            )
-
-            # sgl.blit(
-            #     self.surface, 
-            #     self.screen_x, self.screen_y, 
-            #     a_x=self.a_x, a_y=self.a_y
-            # )
+            if (not (self.flip_h or self.flip_v) 
+                and self.alpha == 255 or self.alpha == 1.0
+                and self.angle == 0):
+                a_x, a_y = self.real_anchor
+                sgl.blitf(
+                    self.surface, 
+                    self.screen_x - a_x, self.screen_y - a_y
+                )
+            else:
+                sgl.blit(
+                    self.surface, 
+                    self.screen_x, self.screen_y, 
+                    a_x=self.a_x, a_y=self.a_y,
+                    angle=self.angle, pretty=self.pretty,
+                    flip_h=self.flip_h, flip_v=self.flip_v,
+                    alpha=self.alpha
+                )
 
     def draw_children(self):
         if self.subsprites == []: return
@@ -424,18 +441,36 @@ class ShapeSprite(Sprite):
     def draw_shape(self):
         pass
 
+    def set_color_alpha(self, color):
+        if self.alpha == 255 or self.alpha == 1.0:
+            return color
+
+        try:
+            len(color)
+        except:
+            return (color, self.alpha)
+
+        if len(color) == 1:
+            return (color[0], self.alpha)
+        elif len(color) == 2:
+            return (color[0], color[1]-self.alpha)
+        elif len(color) == 3:
+            return (color[0], color[1], color[2], self.alpha)
+        elif len(color) == 4:
+            return (color[0], color[1], color[2], color[3]-self.alpha)
+
     def draw_self(self):
         with sgl.with_state():
             if self.no_stroke:
                 sgl.no_stroke()
             else:
-                sgl.set_stroke(self.stroke_color)
+                sgl.set_stroke(self.set_color_alpha(self.stroke_color))
                 sgl.set_stroke_weight(self.stroke_weight)
 
             if self.no_fill:
                 sgl.no_fill()
             else:
-                sgl.set_fill(self.fill_color)
+                sgl.set_fill(self.set_color_alpha(self.fill_color))
 
             self.draw_shape()
 
@@ -724,6 +759,8 @@ if __name__ == "__main__":
             self.anchor = 0, 0.5
 
             self.vel = 150
+
+            self.alpha = 200
 
         def update(self):
             self.x += self.vel * sgl.get_dt()
