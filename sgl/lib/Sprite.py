@@ -454,6 +454,28 @@ class AnimatedSprite(Sprite):
         # maybe awkward that this does not attempt to make up for
         # lost time like sgl.lib.Time does?
 
+# Might be an object later
+def Spritesheet(surface, frame_width=0, frame_height=0):
+    with sgl.with_buffer(surface):
+        frames = []
+        x = 0
+        y = 0
+        width = sgl.get_width()
+        height = sgl.get_height()
+
+        while True:
+            chunk = sgl.get_chunk(x, y, frame_width, frame_height)
+            frames.append(chunk)
+            
+            x += frame_width
+            if x + frame_width > width:
+                x = 0
+                y += frame_height
+                if y + frame_height > height:
+                    break
+
+        return frames
+
 class ShapeSprite(Sprite):
     def __init__(self):
         super(ShapeSprite, self).__init__()
@@ -571,12 +593,6 @@ class PerspectiveGroup(SpriteGroup):
                     draw_function()
             else:
                 draw_function()
-
-    def get_subsprites_flat(self):
-        subsprites = self.subsprites[:]
-        for item in self.subsprites:
-            subsprites += item.subsprites
-        return subsprites
 
     def get_subsprites(self, sprite):
         subsprites = sprite.subsprites[:]

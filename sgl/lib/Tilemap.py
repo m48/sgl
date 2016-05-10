@@ -1,5 +1,5 @@
 import sgl
-from sgl.lib.Sprite import Sprite, AnimatedSprite, RectSprite, Scene, App
+from sgl.lib.Sprite import Sprite, AnimatedSprite, RectSprite, Scene, App, Spritesheet
 from sgl.lib.Rect import Rect
 
 class Tilemap(Sprite):
@@ -218,9 +218,16 @@ if __name__ == "__main__":
                 sgl.no_fill()
                 sgl.set_stroke(0.25,0,0)
                 sgl.draw_rect(0, 0, 32, 32)
+
+            fake_sheet = sgl.make_surface(64,32)
+            with sgl.with_buffer(fake_sheet):
+                sgl.blit(grass, 0, 0)
+                sgl.blit(wall, 32, 0)
             
+            sheet = Spritesheet(fake_sheet, 32, 32)
+
             self.map.tiles = [
-                grass,
+                sheet[0],
                 AnimatedTile(
                     [sgl.make_surface(32, 32, (0,0,1.0)),
                      sgl.make_surface(32, 32, (0.25,0.25,1.0)),
@@ -229,7 +236,7 @@ if __name__ == "__main__":
                     ],
                     0.5,
                 ),
-                wall,
+                sheet[1],
             ]
 
             self.map.default_collision = {
