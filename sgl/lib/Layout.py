@@ -201,9 +201,17 @@ class Spacer(object):
         self.width = width
         self.height = height
 
+        self.position = 0,0
+
         self.active = False
         self.visible = False
         self.to_be_deleted = False
+
+    def world_to_screen(self, x, y):
+        return 0, 0 
+
+    def on_add(self):
+        pass
 
     def preupdate(self):
         pass
