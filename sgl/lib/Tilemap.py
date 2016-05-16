@@ -125,7 +125,7 @@ class Tilemap(Sprite):
 
         first_column, first_row, last_column, last_row = (
             self.coords_at_rect(
-                Rect(-start_x, -start_y, self.parent.width, self.parent.height),
+                Rect(-start_x+self.parent.screen_x, -start_y+self.parent.screen_y, self.parent.width, self.parent.height),
                 False
             ).to_tuple(True)
         )
