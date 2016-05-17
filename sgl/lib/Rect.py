@@ -15,8 +15,20 @@ class Rect():
     def y2(self):
         return self.y + self.height
 
-    def to_tuple(self):
-        return (self.x, self.y, self.width, self.height)
+    def to_tuple(self, coords=False):
+        if coords:
+            return (self.x, self.y, self.x2, self.y2)
+        else:
+            return (self.x, self.y, self.width, self.height)
+
+    def make_positive(self):
+        if self.width < 0:
+            self.width = -self.width
+            self.x -= self.width
+
+        if self.height < 0:
+            self.height = -self.height
+            self.y -= self.height
 
     def is_in(self, *args):
         if isinstance(args[0], Rect):
@@ -46,6 +58,16 @@ class Rect():
             return None
 
 if __name__ == "__main__":
+    # r = Rect(0,0,32,32)
+    # r2 = Rect(32, 0, 64, 64)
+    # print r.is_in(r2)           # false
+    # r.x = 1
+    # print r.is_in(r2)           # true
+    # r.x = 64
+    # print r.is_in(r2)           # true
+    # 
+    # not expected behavior?
+
     import sgl
     sgl.init(640, 480)
 
