@@ -38,9 +38,9 @@ def needs_ability(ability):
 ## SYSTEM
 Backend = None
 
-def init(width, height, scale=1, backend="pygame"):
+def init(width, height, scale=1, fullscreen=False, backend="pygame"):
     """ 
-    init(width, height, scale=1, backend="pygame")
+    init(width, height, scale=1, fullscreen=False, backend="pygame")
 
     Must be called before any other SGL functions to initiate the
     drawing surface.
@@ -51,6 +51,9 @@ def init(width, height, scale=1, backend="pygame"):
     :param int scale: Specifies the scaling factor. Width and height
         will be multiplied by this to form the actual window size.  This
         is useful for working with small resolutions, such as 320x240.
+
+    :param bool fullscreen: On desktop platforms, whether the display
+    should be windowed or fullscreen.
 
     :param str backend: Which backend to use. Currently, the only
         supported option is "pygame".
@@ -80,7 +83,7 @@ def init(width, height, scale=1, backend="pygame"):
     # which I'm considering.
     sys.modules["sgl"].key = Backend.Meta.KeyCodes
 
-    Backend.init(width, height, scale)
+    Backend.init(width, height, scale, fullscreen)
 
 def run(update=None, draw=None):
     """ 

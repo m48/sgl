@@ -268,7 +268,7 @@ class Backend:
     gfx_stack = []
 
     ## SYSTEM
-    def init(self, width, height, scale=1):
+    def init(self, width, height, scale=1, fullscreen=False):
         self.screen_width = width
         self.screen_height = height
         self.scale = scale
@@ -276,10 +276,16 @@ class Backend:
         # centers window in middle of screen
         os.environ["SDL_VIDEO_CENTERED"] = "1"
 
+        if fullscreen:
+            flags = pygame.FULLSCREEN
+        else:
+            flags = 0
+
         pygame.init()
         self.window = pygame.display.set_mode(
             (self.screen_width * self.scale, 
-             self.screen_height * self.scale)
+             self.screen_height * self.scale),
+            flags
         )
         self.display = pygame.Surface(
             (self.screen_width, self.screen_height)
