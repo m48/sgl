@@ -54,7 +54,7 @@ class CollisionChecker(object):
         # it has a display surface. If it doesn't, that means it's a
         # group, and we don't want to test the rectangle of the whole
         # group
-        if self.object2.surface: 
+        if True:
             if self.object1.is_colliding_with(self.object2):
                 if do_callback:
                     self.do_callback(self.object1, self.object2)

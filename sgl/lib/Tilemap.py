@@ -69,6 +69,10 @@ class Tilemap(Sprite):
 
     def collision_in(self, rect):
         x1, y1, x2, y2 = self.coords_at_rect(rect).to_tuple(True)
+        x1 = int(x1)
+        y1 = int(y1)
+        x2 = int(x2)
+        y2 = int(y2)        
 
         if not (self.in_bounds(y1, x1) and self.in_bounds(y2, x2)):
             return True
