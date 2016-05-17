@@ -2,6 +2,8 @@ import sgl
 from sgl.lib.Sprite import Sprite, AnimatedSprite, RectSprite, Scene, App, Spritesheet
 from sgl.lib.Rect import Rect
 
+import math
+
 class Tilemap(Sprite):
     tiles = []
 
@@ -62,17 +64,13 @@ class Tilemap(Sprite):
     def coords_at_rect(self, rect, screen=True):
         rect.make_positive()
 
-        x1, y1 = self.coords_at(rect.x, rect.y, screen)
-        x2, y2 = self.coords_at(rect.x2, rect.y2, screen)
+        x1, y1 = self.coords_at(math.floor(rect.x), math.floor(rect.y), screen)
+        x2, y2 = self.coords_at(math.ceil(rect.x2)-1, math.ceil(rect.y2)-1, screen)
 
         return Rect(x1, y1, x2-x1, y2-y1)
 
     def collision_in(self, rect):
         x1, y1, x2, y2 = self.coords_at_rect(rect).to_tuple(True)
-        x1 = int(x1)
-        y1 = int(y1)
-        x2 = int(x2)
-        y2 = int(y2)        
 
         if not (self.in_bounds(y1, x1) and self.in_bounds(y2, x2)):
             return True
@@ -89,9 +87,9 @@ class Tilemap(Sprite):
 
     def coords_at(self, x, y, screen=True):
         if screen:
-            x -= int(self.screen_x)
-            y -= int(self.screen_y)
-        return x / self.tile_size[0], y / self.tile_size[1]
+            x -= self.screen_x
+            y -= self.screen_y
+        return int(x) / self.tile_size[0], int(y) / self.tile_size[1]
 
     def in_bounds(self, row, column):
         if column < 0 or column >= self.map_size[0]:
@@ -198,6 +196,7 @@ if __name__ == "__main__":
     import random
 
     sgl.init(640, 480, 1)
+    # sgl.init(320, 240, 2)
     sgl.set_font(sgl.load_system_font("Arial", 20))
 
     class TestScene(Scene):
