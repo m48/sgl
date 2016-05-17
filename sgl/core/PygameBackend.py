@@ -922,8 +922,18 @@ class Backend:
         return surface
 
     def get_chunk(self, x, y, width, height):
-        surface = pygame.Surface((width, height))
+        surface = pygame.Surface((width, height), self.gfx_state.buffer.get_flags())
+
+        transparent_color = self.gfx_state.buffer.get_colorkey()
+        if transparent_color:
+            surface.set_colorkey(transparent_color)
+            self.gfx_state.buffer.set_colorkey(None)
+            
         surface.blit(self.gfx_state.buffer, (0,0), pygame.Rect(x, y, width, height))
+
+        if transparent_color:
+            self.gfx_state.buffer.set_colorkey(transparent_color)
+
         return surface
 
     def set_buffer(self, surface):
