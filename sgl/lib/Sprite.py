@@ -653,12 +653,16 @@ class Viewport(Sprite):
 
         self.camera = Camera()
 
+        self.background_color = None
+
     def draw(self):
         if not self.visible: return
 
         with sgl.with_state():
             self.view_rect = self.screen_rect
             sgl.set_clip_rect(*self.screen_rect.to_tuple())
+            if self.background_color != None:
+                sgl.clear(self.background_color)
             self.draw_children()
 
         self.draw_self()
