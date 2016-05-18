@@ -229,9 +229,9 @@ class Sprite(object):
         screen_x = self.x
         screen_y = self.y
 
-        if self.parent and not self.fixed:
+        if self.parent:
 
-            if hasattr(self.parent, "camera"):
+            if hasattr(self.parent, "camera") and not self.fixed:
                 screen_x, screen_y = (
                     self.parent.camera.world_to_screen(
                         self.x, self.y, self.parallax)
