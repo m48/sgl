@@ -191,9 +191,9 @@ class Menu(Sprite):
 
     def reflow(self):
         self.viewport.x = self.exterior_margin
-        self.viewport.y = self.exterior_margin
+        self.viewport.y = self.exterior_margin + 1
         self.viewport.width = self.width - self.exterior_margin*2
-        self.viewport.height = self.height - self.exterior_margin*2
+        self.viewport.height = self.height - self.exterior_margin*2 - 1
 
         self.layout.width = self.viewport.width
         self.layout.spacing = self.spacing
@@ -350,7 +350,7 @@ class BoxMenu(Menu):
             self.selection_box.y = self.selection.screen_y
             self.selection_box.size = self.selection.size
 
-            # print self.selection_box.position
+            # print self.screen_position, self.selection_box.screen_position
         else:
             old_scroll = None
             scroll_destination = self.scroll_destination
