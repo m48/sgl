@@ -298,14 +298,14 @@ if __name__ == "__main__":
             v = 200
 
             if sgl.is_key_pressed(sgl.key.down): 
-                self.camera.y -= v * sgl.get_dt()
-            if sgl.is_key_pressed(sgl.key.up): 
                 self.camera.y += v * sgl.get_dt()
+            if sgl.is_key_pressed(sgl.key.up): 
+                self.camera.y -= v * sgl.get_dt()
 
             if sgl.is_key_pressed(sgl.key.right): 
-                self.camera.x -= v * sgl.get_dt()
-            if sgl.is_key_pressed(sgl.key.left): 
                 self.camera.x += v * sgl.get_dt()
+            if sgl.is_key_pressed(sgl.key.left): 
+                self.camera.x -= v * sgl.get_dt()
 
             if sgl.on_mouse_down():
                 self.selection_box.visible = True

@@ -546,12 +546,12 @@ class Camera(object):
 
     def world_to_screen(self, x, y, parallax=1):
         if parallax == 1:
-            return (x + self.x, y + self.y) 
+            return (x - self.x, y - self.y) 
         else:
-            return (x + self.x/parallax, y + self.y/parallax)             
+            return (x - self.x/parallax, y - self.y/parallax)             
 
     def screen_to_world(self, x, y, parallax=1):
-        return (x - self.x*parallax, y - self.y*parallax) 
+        return (x + self.x*parallax, y + self.y*parallax) 
 
 # Specialized types of groups
 class SpriteGroup(Sprite):
@@ -720,14 +720,14 @@ if __name__ == "__main__":
             v = 200
 
             if sgl.is_key_pressed(sgl.key.down): 
-                self.camera.y -= v * sgl.get_dt()
-            if sgl.is_key_pressed(sgl.key.up): 
                 self.camera.y += v * sgl.get_dt()
+            if sgl.is_key_pressed(sgl.key.up): 
+                self.camera.y -= v * sgl.get_dt()
 
             if sgl.is_key_pressed(sgl.key.right): 
-                self.camera.x -= v * sgl.get_dt()
-            if sgl.is_key_pressed(sgl.key.left): 
                 self.camera.x += v * sgl.get_dt()
+            if sgl.is_key_pressed(sgl.key.left): 
+                self.camera.x -= v * sgl.get_dt()
 
             sgl.set_title("FPS: " + str(int(sgl.get_fps())))
 
