@@ -112,11 +112,11 @@ class Menu(Sprite):
 
     @property
     def scroll(self):
-        return -self.viewport.camera.y
+        return self.viewport.camera.y
 
     @scroll.setter
     def scroll(self, value):
-        self.viewport.camera.y = -value
+        self.viewport.camera.y = value
         if self.selection:
             self.layout.preupdate()
             self.selection.preupdate()
@@ -289,7 +289,7 @@ class BoxMenu(Menu):
         self.selection_box = RectSprite()
         self.selection_box.fill_color = (1.0, 0.25)
         self.selection_box.size = 0, 0
-        self.selection_box.fixed = True
+        self.selection_box.cancel_parent_transform = True
         self.add(self.selection_box)
 
     def reflow(self):

@@ -65,8 +65,13 @@ class Sprite(object):
         self.parallax = 1
 
         # If this is true, object will be in a fixed position, and
-        # not be affected by camera movement and stuff
+        # not be affected by camera movement
         self.fixed = False
+
+        # Whether to cancel that *and* inheriting positions from
+        # parent sprite. This'll make the spread behaved basically as
+        # if it has no parent.
+        self.cancel_parent_transform = False
 
         # The drawing bounding box. Don't change it manually.
         self._rect = Rect()
@@ -229,7 +234,7 @@ class Sprite(object):
         screen_x = self.x
         screen_y = self.y
 
-        if self.parent:
+        if self.parent and not self.cancel_parent_transform:
 
             if hasattr(self.parent, "camera") and not self.fixed:
                 screen_x, screen_y = (
