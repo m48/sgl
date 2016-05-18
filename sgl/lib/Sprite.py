@@ -665,7 +665,18 @@ class Viewport(Sprite):
 
         with sgl.with_state():
             self.view_rect = self.screen_rect
-            sgl.set_clip_rect(*self.screen_rect.to_tuple())
+
+            existing_rect = sgl.get_clip_rect()
+            if existing_rect:
+                existing_rect = Rect(*existing_rect)
+                new_rect = existing_rect.intersect(self.screen_rect)
+                if new_rect:
+                    sgl.set_clip_rect(*new_rect.to_tuple())
+                else:
+                    return
+            else:
+                sgl.set_clip_rect(*self.screen_rect.to_tuple())
+
             if self.background_color != None:
                 sgl.clear(self.background_color)
             self.draw_children()

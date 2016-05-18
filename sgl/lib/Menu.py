@@ -339,6 +339,7 @@ class BoxMenu(Menu):
     def unanimate(self):
         self.animating = False
         self.selection_box.visible = True
+        self.update_selection()
 
     def on_selection(self, system):
         if system:
