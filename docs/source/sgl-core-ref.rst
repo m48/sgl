@@ -1,8 +1,8 @@
 SGL Core Reference
 ==================
 
-SGL divided into two components--``sgl.lib`` and ``sgl.core``. ``sgl.core`` is the part of the library that provides the low-level drawing commands, similar to what you might find built into BlitzBasic or Processing. While ideally you should be able to spend most of your time in ``sgl.lib``, it is essential to use ``sgl.core`` to make even the simplest SGL program.
-
+SGL divided into two components--``sgl.lib`` and ``sgl.core``. ``sgl.core`` is the part of the library that provides the low-level drawing commands, similar to what you might find built into BlitzBasic or Processing. While ideally you should be able to spend most of your time in ``sgl.lib``, it is essential to use ``sgl.core`` to make even the simplest SGL program. 
+ 
 To import ``sgl.core``, currently this is all that is required::
 
     import sgl
@@ -17,7 +17,7 @@ Then, to call any of the functions defined in ``sgl.core``, simply prefix them w
         import sgl.core as sgl
 
     **The benefits of this approach:** 
-
+ 
     * It will make the internal structure of the library easier to maintain
     * It will make it more obvious that ``sgl.core`` is actually called ``sgl.core``.
 
@@ -38,7 +38,7 @@ Most of ``sgl.core`` is fairly simple--it is a non-object-oriented module with v
   
     graphic = sgl.load_image("smiley.png")
     print(graphic.width)
-
+ 
 You must instead do this::
   
     graphic = sgl.load_image("smiley.png")

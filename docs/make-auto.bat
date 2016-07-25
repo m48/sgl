@@ -1,2 +1,2 @@
-sphinx-autobuild --ignore "source\.#*" --ignore "source\#*#" source\ build 
+sphinx-autobuild --open-browser --ignore "source\.#*" --ignore "source\#*#" --watch "..\\sgl\\" --ignore "..\sgl\*.#*" --ignore "..\sgl\*#*#" source build 
 pause
