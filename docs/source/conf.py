@@ -30,12 +30,14 @@ import os
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
-    'sphinxcontrib.napoleon',
+    'sphinx.ext.napoleon',
     'sphinx.ext.todo',
     'sphinx.ext.coverage',
     # 'sphinx.ext.viewcode',
 ]
 
+# Misc config
+napoleon_numpy_docstring = False
 autodoc_member_order = "bysource"
 
 # Add any paths that contain templates here, relative to this directory.
