@@ -20,7 +20,60 @@ class Sprite(object):
     """ Provides a class to represent drawable objects. """
 
     def __init__(self, graphic=None):
-        # Initialize properties
+        """ 
+        Args:
+            graphic (SGL Surface): A graphic that will be loaded by :any:`Sprite.load_surface` during initialization. 
+        """
+
+        # Private attributes (will be named properly later)
+
+        self.to_be_deleted = False
+        # """ bool: Whether parent sprites will automatically delete this object
+        # on the next frame """
+        
+        self.view_rect = None
+        # """ :any:`sgl.lib.Rect.Rect`: A rectangle, in screen
+        # coordinates, that specifies where child sprites will be
+        # allowed to be drawn. """
+
+        # The object's collision bounding box. Combined with property
+        # to provide sane default. Documented there.
+        self._collision_rect = None
+
+        # The drawing bounding box. Don't change it manually.
+        self._rect = Rect()
+
+        self.x = 0      
+        # """ number: The X position of the sprite in local coordinates. """
+
+        self.y = 0      
+        # """ number: The Y position of the sprite in local coordinates. """
+
+        self.prev_x = 0      
+        # """ number: The X position of the sprite on the previous frame in local coordinates. """
+
+        self.prev_y = 0      
+        # """ number: The Y position of the sprite on the previous frame in local coordinates. """
+
+        self.a_x = 0      
+        # """ number: The X position of the anchor point of the sprite. If a float, will consider it to be a percentage of the sprite size. (So 0.5 would be the middle of the sprite.) """
+
+        self.a_y = 0      
+        # """ number: The Y position of the anchor point of the sprite. If a float, will consider it to be a percentage of the sprite size. (So 0.5 would be the middle of the sprite.) """
+
+        self.screen_x = 0      
+        # """ int: The X position of the sprite after taking into account transformations by the camera and parent sprites. Should not be changed manually. """
+
+        self.screen_y = 0      
+        # """ int: The Y position of the sprite after taking into account transformations by the camera and parent sprites. Should not be changed manually. """
+
+        self.width = 0      
+        # """ number: The width of the visible portion of the sprite. """
+
+        self.height = 0      
+        # """ number: The height of the visible portion of the sprite. """
+
+        # Public attributes
 
         self.visible = True
         """ bool: Whether parent sprites will call "draw" on this object. """
@@ -28,108 +81,77 @@ class Sprite(object):
         self.active = True
         """ bool: Whether parent sprites will call "update" on this object. """
     
-        self.to_be_deleted = False
-        # """ bool: Whether parent sprites will automatically delete this object
-        # on the next frame """
-        # should be private(ish)
-
         self.infinite_space = False
-        """ bool: Whether this object should be assumed to exist everywhere by
-        the drawing functions (for example, for a group containing
-        objects that spread across a large area) """
+        """ bool: Whether this object should be assumed to exist
+        everywhere by the drawing functions (for example, for a group
+        containing objects that spread across a large area) """
    
-        self.x = 0      
-        """ number: The X position of the sprite in local coordinates. """
-
-        self.y = 0      
-        """ number: The Y position of the sprite in local coordinates. """
-
-        self.prev_x = 0      
-        """ number: The X position of the sprite on the previous frame in local coordinates. """
-
-        self.prev_y = 0      
-        """ number: The Y position of the sprite on the previous frame in local coordinates. """
-
-        self.a_x = 0      
-        """ number: The X position of the anchor point of the sprite. If a float, will consider it to be a percentage of the sprite size. (So 0.5 would be the middle of the sprite.) """
-
-        self.a_y = 0      
-        """ number: The Y position of the anchor point of the sprite. If a float, will consider it to be a percentage of the sprite size. (So 0.5 would be the middle of the sprite.) """
-
-        self.screen_x = 0      
-        """ int: The X position of the sprite after taking into account transformations by the camera and parent sprites. Should not be changed manually. """
-
-        self.screen_y = 0      
-        """ int: The Y position of the sprite after taking into account transformations by the camera and parent sprites. Should not be changed manually. """
-
-        self.width = 0      
-        """ number: The width of the visible portion of the sprite. """
-
-        self.height = 0      
-        """ number: The height of the visible portion of the sprite. """
-
         self.subsprites = []
         """ list: A list of child sprites inside this one. """
 
-        self.view_rect = None
-        # """ :any:`sgl.lib.Rect.Rect`: A rectangle, in screen coordinates, that specifies where child sprites will be allowed to be drawn. """
-        # Probably should not be documented publicly
-
         self.parent = None
-        """ :any:`Sprite`: A reference to this sprite's parent sprite. """
+        """ :any:`Sprite`: A reference to this sprite's parent
+        sprite. """
 
         self.scene = None
-        """ :any:`Scene`: A reference to the scene object this sprite is part of. """
+        """ :any:`Scene`: A reference to the scene object this sprite
+        is part of. """
 
         self.app = None
-        """ :any:`App`: A reference to the application object this sprite is part of. Useful for, say, switching to a different scene. """
+        """ :any:`App`: A reference to the application object this
+        sprite is part of. Useful for, say, switching to a different
+        scene. """
 
         self.parallax = 1
-        """ number: What this sprite's local position will be divided by when transformed by camera movements. """
+        """ number: What this sprite's local position will be divided
+        by when transformed by camera movements. """
 
-        # If this is true, object will be in a fixed position, and
-        # not be affected by camera movement
         self.fixed = False
-        """ bool: If True, will prevent sprite from being transformed by camera movements. Useful for, say, HUD items. """
+        """ bool: If True, will prevent sprite from being transformed
+        by camera movements. Useful for, say, HUD items. """
 
         self.cancel_parent_transform = False
-        """ bool: If True, will prevent sprite from being transformed by *anything,* including parent sprites. """
-
-        # The drawing bounding box. Don't change it manually.
-        self._rect = Rect()
+        """ bool: If True, will prevent sprite from being transformed
+        by *anything,* including parent sprites. """
 
         self.solid = True
-        """ bool: Whether collision functions will bother with this sprite. """
-
-        # The object's collision bounding box. Combined with property
-        # to provide sane default. Documented there.
-        self._collision_rect = None
+        """ bool: Whether collision functions will bother with this
+        sprite. """
 
         # Same effects as sgl.blit
 
         self.flip_h = False
-        """ bool: Whether to flip this sprite's surface horizontally. (Does not propagate to child sprites.) """
+        """ bool: Whether to flip this sprite's surface
+        horizontally. (Does not propagate to child sprites.) """
+
         self.flip_v = False
-        """ bool: Whether to flip this sprite's surface vertically. (Does not propagate to child sprites.) """
+        """ bool: Whether to flip this sprite's surface
+        vertically. (Does not propagate to child sprites.) """
 
         self.alpha = 255
-        """ number: How transparent the surface of this sprite should be drawn. (Does not propagate to child sprites.) """
+        """ number: How transparent the surface of this sprite should
+        be drawn. (Does not propagate to child sprites.) """
 
         self.angle = 0
-        """ number: The angle to which the surface of this sprite should be rotated. (Does not propagate to child sprites.) """
+        """ number: The angle to which the surface of this sprite
+        should be rotated. (Does not propagate to child sprites.) """
 
         self.pretty = False
-        """ bool: Whether the rotation effect should be smoothed out. (Does not propagate to child sprites.) """
+        """ bool: Whether the rotation effect should be smoothed
+        out. (Does not propagate to child sprites.) """
 
         # Loads the graphic
         if graphic: 
             self.load_surface(graphic)
         else:
             self.surface = None
-            """ SGL Surface: The graphic of this sprite. If `None`, will depend on child sprites or an overriden :any:`Sprite.draw_self` to draw anything to the screen. """
+            """ SGL Surface: The graphic of this sprite. If `None`,
+            will depend on child sprites or an overriden
+            :any:`Sprite.draw_self` to draw anything to the
+            screen. """
 
     def add(self, sprite):
-        """ Adds a child sprite to this one. 
+        """ Adds a child sprite to this end of this sprite's sprite list. 
 
         Args:
             sprite (:any:`Sprite`): A :any:`Sprite` instance to add. """
@@ -143,13 +165,20 @@ class Sprite(object):
         return sprite
 
     def on_add(self):
-        """ Exectued when a sprite is added. """
+        """ Exectued when a sprite is added. It's recommended to put
+        initialization code here instead of ``__init__``, so that the
+        sprite will have proper access to its parent elements during
+        and after initialization. (Not all the examples have been
+        updated to work like this, though.) """
 
         pass
 
     # User facing access
     @property
     def rect(self):
+        """ :any:`sgl.lib.Rect.Rect`: Read-only property returning the
+        bounding box of this sprite in local coordinates. """
+
         real_anchor = self.real_anchor
 
         self._rect.x = self.x - real_anchor[0]
@@ -160,6 +189,10 @@ class Sprite(object):
 
     @property
     def screen_rect(self):
+        """ :any:`sgl.lib.Rect.Rect`: Read-only property returning the
+        bounding box of this sprite in screen coordinates (after
+        camera and parent transformations have been applied). """
+
         real_anchor = self.real_anchor
 
         self._rect.x = self.screen_x - real_anchor[0]
@@ -170,6 +203,11 @@ class Sprite(object):
 
     @property
     def collision_rect(self):
+        """ :any:`sgl.lib.Rect.Rect`: The bounding box that the
+        collision functions will use to determine when this sprite is
+        overlapping with others. If none is specified, it will assume
+        you want the entire sprite to be collidable. """
+
         if self._collision_rect:
             return self._collision_rect
         else:
@@ -184,6 +222,14 @@ class Sprite(object):
 
     @property
     def world_collision_rect(self):
+        """ :any:`sgl.lib.Rect.Rect`: Read-only property returning the
+        bounding box of this sprite in world coordinates (after
+        parent, but not camera transformations have been applied).
+
+        Todo:
+            * Make this property only disregard camera
+              transformations, instead of all of them. """
+
         real_anchor = self.real_anchor
         rect = Rect()
 
@@ -196,6 +242,10 @@ class Sprite(object):
 
     @property
     def screen_collision_rect(self):
+        """ :any:`sgl.lib.Rect.Rect`: Read-only property returning the
+        bounding box of this sprite in screen coordinates (after
+        parent and camera transformations have been applied). """
+
         real_anchor = self.real_anchor
         rect = Rect()
 
@@ -207,12 +257,34 @@ class Sprite(object):
         return rect
 
     def is_colliding_with(self, other):
+        """ Returns whether this sprite is colliding with another
+        one. Currently just passes responsibility to the other sprite
+        by calling its :any:`Sprite.is_being_collided` function.
+
+        Args:
+            sprite (:any:`Sprite`): Another :any:`Sprite` instance to
+                test.
+
+        Returns: 
+            bool: Whether this sprite is colliding with the other
+                  one. """
+
         if not self.solid or not other.solid:
             return False
 
         return other.is_being_collided(self)
 
     def is_being_collided(self, other):
+        """ Returns whether this sprite is colliding with another one.
+
+        Args:
+            sprite (:any:`Sprite`): Another :any:`Sprite` instance to
+                 test.
+
+        Returns: 
+            bool: Whether this sprite is colliding with the other
+                one. """
+
         return self.world_collision_rect.is_in(
             other.world_collision_rect
         )
@@ -221,10 +293,21 @@ class Sprite(object):
     # deal with them as tuples if you want
     @property
     def screen_position(self):
+        """ tuple: Read-only property returning the screen position of
+        this sprite (after parent and camera transformations have been
+        applied). Can also be accessed through the ``screen_x`` and
+        ``screen_y`` attributes. """
+
         return (self.screen_x, self.screen_y)
 
     @property
     def position(self):
+        """ tuple: The local position of this sprite (before any
+        transformations have been applied).
+
+        Can also be accessed through the ``x`` and ``y``
+        attributes. """
+
         return (self.x, self.y)
     
     @position.setter
@@ -233,12 +316,42 @@ class Sprite(object):
 
     @property
     def prev_position(self):
-        return (self.screen_x, self.screen_y)
+        """ tuple: Read-only property returning the local position of
+        this sprite on the previous frame.
+
+        Can also be accessed through the ``prev_x`` and ``prev_y``
+        attributes. """
+
+        return (self.prev_x, self.prev_y)
+
+    @property
+    def anchor(self):
+        """ tuple: The position of the anchor point of this
+        sprite. This determines the coordinates that is considered (0,
+        0) for this sprite, and impacts which point it is rotated
+        around if you use that effect. If either dimension is a
+        floating-point number, they'll be interpreted as a percentage
+        of the sprite's width or height. So, setting the anchor point
+        to (0.5, 0.5) will placed in the center of the sprite's
+        graphic.
+
+        Can also be accessed through the ``a_x`` and ``a_y``
+        attributes. """
+
+        return (self.a_x, self.a_y)
+    
+    @anchor.setter
+    def anchor(self, new_value):
+        self.a_x, self.a_y = new_value
 
     # Converts the anchor point to real coordinates from the
     # scaling type
     @property
     def real_anchor(self):
+        """ tuple: Read-only property returning the position of the
+        anchor point of this sprite after percentage values (such as
+        0.5) have been converted to real coordinates. """
+
         a_x, a_y = self.a_x, self.a_y
         if isinstance(a_x, float): a_x = self.width * a_x
         if isinstance(a_y, float): a_y = self.height * a_y
@@ -246,15 +359,12 @@ class Sprite(object):
         return (a_x, a_y)
 
     @property
-    def anchor(self):
-        return (self.a_x, self.a_y)
-    
-    @position.setter
-    def anchor(self, new_value):
-        self.a_x, self.a_y = new_value
-
-    @property
     def size(self):
+        """ tuple: The size of this sprite. Used for positioning the
+        anchor point, determining whether a sprite is visible and
+        should be drawn, and as a default size for the sprite's
+        collision bounding box. """
+
         return (self.width, self.height)
     
     @size.setter
@@ -262,11 +372,27 @@ class Sprite(object):
         self.width, self.height = new_value
 
     def is_mouse_over(self):
+        """ Returns whether the mouse cursor is currently inside this
+        sprite's bounding box.
+
+        Returns: 
+            bool: Whether the mouse is inside. """
+
         return self.screen_rect.is_in(
             sgl.get_mouse_x(), sgl.get_mouse_y()
         )
 
     def world_to_screen(self, x, y):
+        """ Converts local coordinates in this sprite's space to
+        screen coordinates.
+
+        Args:
+            x (number): The x coordinates to convert.
+            y (number): The y coordinates to convert.
+
+        Returns: 
+            tuple: The new coordinates. """
+
         screen_x = self.x
         screen_y = self.y
 
@@ -284,17 +410,47 @@ class Sprite(object):
         return screen_x, screen_y
 
     def update_screen_positions(self):
+        """ Screen positions are slightly broken. By default, screen
+        coordinates are only updated in the :any:`Sprite.preupdate`
+        function. This means that sometimes they will update a frame
+        late if you change a parent sprite's position during its
+        :any:`Sprite.update` phase. In addition, even when it does
+        update, sometimes position changes will not propagate through
+        the hierarchy correctly.
+
+        This function can help you work around that by forcing all of
+        this sprite and all of its child sprites to recursively update
+        their screen coordinates to the correct value. If you see
+        child sprites behaving strangely, try adding a call to this in
+        the parent sprite's code.
+
+        I realize this is a bit of a hack, but it is the lesser
+        evil. I tried to update all screen positions on every frame,
+        but that slowed the sprite system down significantly and
+        created new positioning problems that, unlike these, could not
+        be solved with a single extra function call. """
+
         self.screen_x, self.screen_y = self.world_to_screen(*self.position)
         for sprite in self.subsprites:
             sprite.update_screen_positions()
 
     def preupdate(self):
+        """ Called before this sprite updates. Currently, contains
+        logic to save the previous position and update the screen
+        position. """
+
         self.prev_x, self.prev_y = self.position
 
         # Because we might need to know in update()
         self.screen_x, self.screen_y = self.world_to_screen(*self.position)
 
     def update(self):
+        """ Called every frame to update this sprite and its child
+        sprites' logic. To define logic for your sprite, override this
+        function. If you want child sprite updating to work properly,
+        though, make sure to call the :any:`Sprite` base classes'
+        update function before yours. """
+
         for index, sprite in enumerate(self.subsprites):
             sprite.preupdate()
 
@@ -305,6 +461,11 @@ class Sprite(object):
                 del self.subsprites[index]
 
     def draw(self):
+        """ Handle drawing this sprite and its children. Should not be
+        overwritten to define custom drawing logic, unless you want to
+        break drawing child sprites. Instead, override
+        :any:`Sprite.draw_self`. """
+
         if not self.visible: return
 
         # Because update might have changed things, and we want to
@@ -315,7 +476,8 @@ class Sprite(object):
         self.draw_children()
 
     def draw_self(self):
-        """ Handle drawings this sprite. If you want to customize how sprite drawing works, override this function."""
+        """ Handle drawings this sprite. If you want to customize how
+        sprite drawing works, override this function."""
 
         if self.surface:
             if (not (self.flip_h or self.flip_v) 
@@ -337,6 +499,12 @@ class Sprite(object):
                 )
 
     def draw_children(self):
+        """ Loops through and draws child sprites. Ideally, should not
+        be called manually.
+
+        Currently, this updates each sprite's screen position one more
+        time, to make them slightly more predictable. """
+
         if self.subsprites == []: return
         # Most accurate way, but slower
         # Use this if things get stupid again
@@ -353,10 +521,22 @@ class Sprite(object):
 
     # Load surface and sets size accordingly.
     def load_surface(self, surface):
+        """ Sets the graphic for this sprite, and makes the size match
+        the size of this graphic.
+
+        Args:
+            surface (SGL Surface): A surface containing the graphic
+                you want this sprite to draw.
+        """        
+
         self.surface = surface
         self.autosize()
 
     def autosize(self):
+        """ Updates this sprite's size to match the size of its
+        surface. Automatically called by :any:`Sprite.load_surface`
+        and when sprites are initialized with surfaces. """
+
         if self.surface:
             with sgl.with_buffer(self.surface):
                 self.width = sgl.get_width()
@@ -365,6 +545,10 @@ class Sprite(object):
             self.width, self.height = 0,0         
 
     def fill(self):
+        """ Utility function to make this sprite completely fill its
+        parent sprite. If it has no parent sprite, it will fill the
+        screen. """
+
         self.anchor = 0, 0
         self.position = 0, 0
         if self.parent:
@@ -373,6 +557,10 @@ class Sprite(object):
             self.size = sgl.get_width(), sgl.get_height()
 
     def center(self):
+        """ Utility function to place this sprite in the center of its
+        parent sprite. If it has no parent sprite, it will be placed
+        in the center of the screen. """
+
         self.anchor = 0.5, 0.5
         
         if self.parent:
@@ -381,10 +569,14 @@ class Sprite(object):
             self.position = sgl.get_width()/2, sgl.get_height()/2
 
     def centre(self):
+        """ Like :any:`Sprite.center`, but British. """
+
         # In honor of wxWidgets
         self.center()
 
     def kill(self):
+        """ Marks this sprite to be deleted on the next frame. """
+
         self.to_be_deleted = True
 
 class AnimatedSprite(Sprite):
