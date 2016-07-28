@@ -22,14 +22,15 @@ class Sprite(object):
     def __init__(self, graphic=None):
         """ 
         Args:
-            graphic (SGL Surface): A graphic that will be loaded by :any:`Sprite.load_surface` during initialization. 
+            graphic (SGL Surface): A graphic that will be loaded by
+            :any:`Sprite.load_surface` during initialization.
         """
 
         # Private attributes (will be named properly later)
 
         self.to_be_deleted = False
-        # """ bool: Whether parent sprites will automatically delete this object
-        # on the next frame """
+        # """ bool: Whether parent sprites will automatically delete
+        # this object on the next frame """
         
         self.view_rect = None
         # """ :any:`sgl.lib.Rect.Rect`: A rectangle, in screen
@@ -44,42 +45,60 @@ class Sprite(object):
         self._rect = Rect()
 
         self.x = 0      
-        # """ number: The X position of the sprite in local coordinates. """
+        # """ number: The X position of the sprite in local
+        # coordinates. """
 
         self.y = 0      
-        # """ number: The Y position of the sprite in local coordinates. """
+        # """ number: The Y position of the sprite in local
+        # coordinates. """
 
         self.prev_x = 0      
-        # """ number: The X position of the sprite on the previous frame in local coordinates. """
+        # """ number: The X position of the sprite on the previous
+        # frame in local coordinates. """
 
         self.prev_y = 0      
-        # """ number: The Y position of the sprite on the previous frame in local coordinates. """
+        # """ number: The Y position of the sprite on the previous
+        # frame in local coordinates. """
 
         self.a_x = 0      
-        # """ number: The X position of the anchor point of the sprite. If a float, will consider it to be a percentage of the sprite size. (So 0.5 would be the middle of the sprite.) """
+        # """ number: The X position of the anchor point of the
+        # sprite. If a float, will consider it to be a percentage of
+        # the sprite size. (So 0.5 would be the middle of the sprite.)
+        # """
 
         self.a_y = 0      
-        # """ number: The Y position of the anchor point of the sprite. If a float, will consider it to be a percentage of the sprite size. (So 0.5 would be the middle of the sprite.) """
+        # """ number: The Y position of the anchor point of the
+        # sprite. If a float, will consider it to be a percentage of
+        # the sprite size. (So 0.5 would be the middle of the sprite.)
+        # """
 
         self.screen_x = 0      
-        # """ int: The X position of the sprite after taking into account transformations by the camera and parent sprites. Should not be changed manually. """
+        # """ int: The X position of the sprite after taking into
+        # account transformations by the camera and parent
+        # sprites. Should not be changed manually. """
 
         self.screen_y = 0      
-        # """ int: The Y position of the sprite after taking into account transformations by the camera and parent sprites. Should not be changed manually. """
+        # """ int: The Y position of the sprite after taking into
+        # account transformations by the camera and parent
+        # sprites. Should not be changed manually. """
 
         self.width = 0      
-        # """ number: The width of the visible portion of the sprite. """
+        # """ number: The width of the visible portion of the
+        # sprite. """
 
         self.height = 0      
-        # """ number: The height of the visible portion of the sprite. """
+        # """ number: The height of the visible portion of the
+        # sprite. """
 
         # Public attributes
 
         self.visible = True
-        """ bool: Whether parent sprites will call "draw" on this object. """
+        """ bool: Whether parent sprites will call "draw" on this
+        object. """
 
         self.active = True
-        """ bool: Whether parent sprites will call "update" on this object. """
+        """ bool: Whether parent sprites will call "update" on this
+        object. """
     
         self.infinite_space = False
         """ bool: Whether this object should be assumed to exist
@@ -151,10 +170,12 @@ class Sprite(object):
             screen. """
 
     def add(self, sprite):
-        """ Adds a child sprite to this end of this sprite's sprite list. 
+        """ Adds a child sprite to this end of this sprite's sprite
+        list.
 
         Args:
-            sprite (:any:`Sprite`): A :any:`Sprite` instance to add. """
+            sprite (:any:`Sprite`): A :any:`Sprite` instance to
+                add. """
 
         sprite.parent = self
         sprite.scene = self.scene
@@ -329,11 +350,12 @@ class Sprite(object):
         """ tuple: The position of the anchor point of this
         sprite. This determines the coordinates that is considered (0,
         0) for this sprite, and impacts which point it is rotated
-        around if you use that effect. If either dimension is a
-        floating-point number, they'll be interpreted as a percentage
-        of the sprite's width or height. So, setting the anchor point
-        to (0.5, 0.5) will placed in the center of the sprite's
-        graphic.
+        around if you use that effect. 
+
+        If either dimension is a floating-point number, they'll be
+        interpreted as a percentage of the sprite's width or
+        height. So, setting the anchor point to (0.5, 0.5) will placed
+        in the center of the sprite's graphic.
 
         Can also be accessed through the ``a_x`` and ``a_y``
         attributes. """
@@ -569,7 +591,7 @@ class Sprite(object):
             self.position = sgl.get_width()/2, sgl.get_height()/2
 
     def centre(self):
-        """ Like :any:`Sprite.center`, but British. """
+        """ Like :any:`center`, but British. """
 
         # In honor of wxWidgets
         self.center()
@@ -580,8 +602,122 @@ class Sprite(object):
         self.to_be_deleted = True
 
 class AnimatedSprite(Sprite):
+    """ A subclass of :any:`Sprite` that provides extra functions
+    useful for managing frame-based animations. """
+    
     frames = []
+    """ list: A list of SGL Surfaces that will provide all the
+    possible frames this sprite can use in its animations. 
+
+    It is recommended you initialize this value in the header of your
+    class, so that these frames will be shared across all instances.
+
+    If you change this attribute while an animation is running, you
+    may cause glitches. """
+
     animations = {}
+    """ dictionary of lists: A dictionary specifying all the different
+    animations that can use these frames.
+
+    The *keys* of this dictionary should be *strings* specifying the names
+    of the animations. These strings will be used to refer to these
+    animations in other parts of your code.
+
+    The *values* of this dictionary should be *lists* that specify which
+    frames should be played when. 
+
+    There are multiple rules that determine how the items of this list
+    will be interpreted.
+
+    If an item of the frame list is an *integer,* that means that the
+    frame of that index (from :any:`frames`) will be shown for the
+    default frame length (:any:`anim_def_frame_length`).
+
+    This means that, if you're okay with each frame of your sprite's
+    animations being shown for the same amount of time, your animation
+    definitions can be nothing but a list of numbers::
+
+        animations = {
+            "stand": [0],
+            "walk": [1,2,3,4],
+            "punch": [5,6,7],
+        }
+
+    In fact, if you know an animation will consist of nothing but
+    contiguous frames, there's nothing stopping you from using
+    :any:`range` to construct animations::
+
+        animations = {
+            "stand": [0],
+            "walk": list(range(1,5)),
+            "punch": list(range(5,8)),
+        }
+
+    (The :any:`list` is there just for Python 3 compatibility, so that
+    the animation is not set to be an iterator. If you are using
+    Python 2, it will work without that.)
+
+    Todo:
+        * Maybe it would be useful to support iterators for
+          animations? That could allow animations of potentially
+          infinite length, which could be fun.
+
+    If an item of the frame list is a *dictionary,* it can do multiple
+    things, depending on which keys are specified:
+
+    * If a ``"frame"`` item is specified, this will determine which
+      frame index to show at that point.
+    * If a ``"time"`` item is specified, this will make just that
+      frame be shown for ``"time"`` amount of time. (A ``"frame"``
+      item must be specified for this to work.)
+    * If a ``"callback"`` item is specified, this class will call the
+      function specified in the value as soon as this frame is
+      reached. This value can either be a string, containing the name of
+      a method of your class, or a function reference, which can point
+      to anything. (You can also use ``"callback"`` without specifying a
+      frame to show, enabling you to, among other things, call callbacks
+      `after` a frame is shown.)
+    
+    Todo:
+        * Currently, you cannot pass arguments to these
+          functions. That would probably be handy.
+
+    * If ``"default_length"`` is specified, from that point onward, the
+      default frame length for `just this animation` will be set to the
+      value you specify. (This should always be used in a dictionary on
+      its own, without any other keys specified.)
+
+    Todo:
+        * The ability to provide custom anchor points for each frame
+          may also be useful.
+        * The ability to provide arbitrary rectangles for each frame
+          may be useful for things like fighting games, in which it is
+          common to have separate hitboxes for each body part. I'll
+          add this when I figure out how to gracefully pass references
+          to these rectangles to the collision library. Making
+          rectangles always point to the same memory address, even
+          when they are not being used, sounds... a bit painful.
+
+    For example, a more complicated animation definition may
+    look like this::
+
+        animations = {
+            "pulse": [
+                {"default_length": 1/8},
+                {"frame": 0, "length": 1},
+                1,2,3,
+                {"frame": 4, "length": 1, "callback": "do_stuff"},
+                3,2,1,
+                {"callback": "animation_over"},
+            ],
+        }
+
+    It is recommended you initialize this value in the header of your
+    class, so that these animations will be shared across all instances.
+
+    If you change this attribute while an animation is running, you
+    will definitely cause glitches.
+    """
 
     def __init__(self):
         super(AnimatedSprite, self).__init__()
@@ -592,20 +728,39 @@ class AnimatedSprite(Sprite):
         self.anim_name = ""
 
         self.anim_def_frame_length = 1.0/15.0
+        """ number: Specifies (in seconds) the amount of time each
+        frame will be displayed if you do not specify any custom times
+        in your animation. By default, this is set to display each
+        frame for a 15th of a second---in other words, it will play
+        your animations at 15 frames per second. """
+
         self.anim_frame_length = 0
 
         self.anim_playing = False
 
     @property
     def anim_current_frame(self):
+        # """ Internal use only. Returns current int or dict for frame. """
+
         return self.animations[self.animation][self.anim_index]
 
     @property
     def anim_length(self):
+        # """ Read-only property returning the amount of items in the current animation. """
+
         return len(self.animations[self.animation])
 
     @property
     def animation(self):
+        """ string: Property containing the name of the currently
+        playing animation. This name should correspond to one of the
+        keys in :any:`animations`.
+
+        If you set this property, it will immediately switch to the
+        animation of that name. The current playing state (whether
+        this sprite is playing whatever the current animation is, or
+        paused), however, will remain unchanged. """
+
         return self.anim_name
 
     @animation.setter
@@ -616,24 +771,43 @@ class AnimatedSprite(Sprite):
 
     @property
     def playing(self):
+        """ bool: Returns whether this sprite is currently playing
+        whatever the active animation is. """
+
         return self.anim_playing
 
     def anim_reset(self):
+        # """ Internal function. Resets the playhead to the first
+        # frame, and resets state variables. """
+
         self.anim_time = 0
         self.anim_next_frame_time = 0
         self.anim_index = 0
 
     def play(self):
+        """ Starts playing the active animation. """
+        
         self.anim_playing = True
 
     def pause(self):
+        """ Pauses playment that the current point. You can call
+        :any:`play` to resume playment from this point. """
+
         self.anim_playing = False
 
     def stop(self):
+        """ Stops playment. This is the same as calling
+        :any:`pause`, except the animation is reset to
+        the first frame before stopping. """
+
         self.anim_reset()
         self.anim_playing = False
 
     def do_callback(self, value):
+        # """ Internal function. Calls the function specified in
+        # ``value``, accounting for various different formats this
+        # could take. """
+
         if is_string(value):
             getattr(self, value)()
         elif hasattr(value, "__call__"):
@@ -642,6 +816,10 @@ class AnimatedSprite(Sprite):
             getattr(self, value[0])(*value[1:])
 
     def anim_update_frame(self):
+        # """ Internal use only. When the current frame's time has
+        # expired, this will move to the next frame and execute any
+        # special commands on the way. """
+
         if self.anim_index >= self.anim_length: return
 
         self.anim_time = 0
@@ -673,6 +851,17 @@ class AnimatedSprite(Sprite):
             self.anim_next_frame_time = length
        
     def preupdate(self):
+        """ Overridden to handle animation logic, in addition to what
+        :any:`Sprite.preupdate` doas. 
+
+        Todo:
+            * It might be useful to be able to restrict how many times
+              an animation can loop, so you can, say, only play an
+              animation once. Currently you can simulate this
+              callbacks, but that's a little cumbersome.
+            * Maybe make this attempt to make up for lost time, like
+              :any:`sgl.lib.Time` does. """
+
         super(AnimatedSprite, self).preupdate()
 
         if not self.anim_playing: return
@@ -691,6 +880,32 @@ class AnimatedSprite(Sprite):
 
 # Might be an object later
 def Spritesheet(surface, frame_width=0, frame_height=0):
+    """ Takes a surface containing a spritesheet and extracts each
+    individual frame from it. Often necessary to use
+    :any:`AnimatedSprite` effectively.
+
+    Args:
+        surface (SGL Surface): A graphic containing a spritesheet with
+            equally sized frames starting from (0,0). This function
+            does not do anything in regards to transparency. You must
+            load your graphic with :any:`sgl.set_transparent_color` or
+            :any:`sgl.load_alpha_image` for transparency to work.
+        frame_width (int): How wide each frame is.
+        frame_height (int): How high each frame is.
+
+    Returns:
+        list: A list of each frame in this spritesheet.
+
+    Todo:
+        * This may eventually be a class, so that spritesheets can
+          blit chunks from a single surface instead of initializing
+          possibly hundreds of tiny little surfaces for each frame. I
+          think that will be more efficient, particularly with
+          hardware accelerated backends. I'll try to make this class
+          behave identically to a list in most cases, but keep in mind
+          that code depending on modifying the frames of a spritesheet
+          like a list could break when this change happens. """
+
     with sgl.with_buffer(surface):
         frames = []
         x = 0
@@ -712,17 +927,52 @@ def Spritesheet(surface, frame_width=0, frame_height=0):
         return frames
 
 class ShapeSprite(Sprite):
+    """ A subclass of :any:`Sprite` designed to handle shapes drawn
+    with the SGL drawing commands instead of blitting surfaces to the
+    screen. 
+
+    This will often be faster than drawing the equivalent surface. """
+
     def __init__(self):
         super(ShapeSprite, self).__init__()
         
         self.no_stroke = False
+        """ bool: Whether strokes should be turned off when drawing the
+        shape. (See :any:`sgl.no_stroke`.) """
+
         self.stroke_color = 1.0
+        """ number or tuple: What color the strokes of the shape
+        should be. (See :any:`sgl.set_stroke`.)
+
+        This class will attempt to mix this color value with the
+        :any:`alpha` value, so you can accurately set the
+        transparency of sprites with this property. Keep in mind that
+        under Pygame this is quite slow. """
+
         self.stroke_weight = 1
+        """ number: How thick the strokes of the shape should be. (See
+        :any:`sgl.set_stroke_weight`.) """
 
         self.no_fill = False
+        """ bool: Whether fills should be turned off when drawing the
+        shape. (See :any:`sgl.no_fill`.) """
+
         self.fill_color = 0.75
+        """ number or tuple: What color the fill of the shape
+        should be. (See :any:`sgl.set_fill`.)
+
+        This class will attempt to mix this color value with the
+        :any:`alpha` value, so you can accurately set the
+        transparency of sprites with this property. Keep in mind that
+        under Pygame this is quite slow. """
 
     def draw_shape(self):
+        """ Override this function to specify what shape this sprite
+        should draw. The stroke and fill properties will have already
+        been set by the other functions of this class, and will
+        automatically be restored to their previous values after this
+        function has been executed. """
+
         pass
 
     def set_color_alpha(self, color):
@@ -759,20 +1009,37 @@ class ShapeSprite(Sprite):
             self.draw_shape()
 
 class RectSprite(ShapeSprite):
+    """ A subclass of :any:`ShapeSprite` that draws a rectangle in the
+    bounding box of the sprite. """
+
     def draw_shape(self):
         sgl.draw_rect(*self.screen_rect.to_tuple())
 
 class EllipseSprite(ShapeSprite):
+    """ A subclass of :any:`ShapeSprite` that draws an ellipse (or
+    circle, if :any:`width` and :any:`height` are the same) in the
+    bounding box of the sprite. """
+
     def draw_shape(self):
         sgl.draw_ellipse(*self.screen_rect.to_tuple())
                 
 # Special object to store camera stuff
 class Camera(object):
+    """ A small object to hold the coordinates of the camera in a
+    given scene. """
+
     def __init__(self):
         self.x, self.y = 0,0
 
     @property
     def position(self):
+        """ tuple: The position of the camera---or, in other words,
+        the coordinates in the scene that will be displayed at the top
+        left corner of the window.
+
+        Can also be accessed through the ``x`` and ``y``
+        attributes. """
+
         return (self.x, self.y)
     
     @position.setter
@@ -790,6 +1057,12 @@ class Camera(object):
 
 # Specialized types of groups
 class SpriteGroup(Sprite):
+    """ A subclass of :any:`Sprite` designed to do nothing but hold
+    other sprites. 
+
+    Identical to a plain :any:`Sprite`, except :any:`infinite_space`
+    is turned on by default."""
+
     def __init__(self):
         super(SpriteGroup, self).__init__()
         
@@ -1003,7 +1276,7 @@ if __name__ == "__main__":
                 {"frame": 4, "length": 1},#, "callback": "pause"},
                 3,2,1,
             ],
-            "crazy": range(4),
+            "crazy": list(range(4)),
         }
 
         def __init__(self):
