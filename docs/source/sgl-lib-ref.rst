@@ -8,7 +8,12 @@ SGL Library Reference
 * ``sgl.lib.Tween`` - Provides "tweening" functionality, which lets you specify start and end values for any numerical property of any object, and animate them moving from point A to point B in a given amount of time with the given interpolation. Makes it much easier to add dynamic animations to in game GUIs and game elements.
  
 Sound exciting? Hopefully, because there will be even more in the future! :p
-  
+
+Actual Reference
+----------------
+
+sgl.lib.Sprite
+^^^^^^^^^^^^^^  
 .. automodule:: sgl.lib.Sprite
                 :members:
 
