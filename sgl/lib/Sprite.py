@@ -1,6 +1,4 @@
-""" Sprite Module
-
-This module provides the bulk of the functionality of
+""" This module provides the bulk of the functionality of
 `sgl.lib`. Nearly every other class in `sgl.lib` inherits from or uses
 :any:`sgl.lib.Sprite` somehow.
 """
@@ -9,7 +7,7 @@ import sgl
 from sgl.lib.Rect import Rect
 
 def is_string(thing):
-    """ Returns whether `thing` is a string or not. """
+    # """ Returns whether `thing` is a string or not. """
 
     if 'basestring' not in globals():
         return isinstance(thing, str)
@@ -23,7 +21,7 @@ class Sprite(object):
         """ 
         Args:
             graphic (SGL Surface): A graphic that will be loaded by
-            :any:`Sprite.load_surface` during initialization.
+                :any:`Sprite.load_surface` during initialization.
         """
 
         # Private attributes (will be named properly later)
@@ -398,7 +396,13 @@ class Sprite(object):
         sprite's bounding box.
 
         Returns: 
-            bool: Whether the mouse is inside. """
+            bool: Whether the mouse is inside. 
+
+        Todo:
+            * Come up with some type of GUI-like event system. Simple
+              functions like these will not help determine whether
+              there's a sprite above this one that should get the
+              focus first and such. """
 
         return self.screen_rect.is_in(
             sgl.get_mouse_x(), sgl.get_mouse_y()
@@ -976,6 +980,9 @@ class ShapeSprite(Sprite):
         pass
 
     def set_color_alpha(self, color):
+        # """ Internal use only. Attempts to merge a color and the
+        # sprite's alpha value, returning the merged color. """
+
         if self.alpha == 255 or self.alpha == 1.0:
             return color
 
@@ -1069,13 +1076,43 @@ class SpriteGroup(Sprite):
         self.infinite_space = True
 
 class PerspectiveGroup(SpriteGroup):
+    """ A subclass of :any:`SpriteGroup` that disregards the usual
+    sprite rendering order and instead draws every sprite inside in
+    the order of their y coordinates. This means that sprites
+    positioned higher on the screen are drawn below sprites positioned
+    lower on the screen. In most two-dimensional projections of
+    perspective, this provides the illusion that some sprites are
+    positioned "behind" other sprites.
+
+    By default, it completely flattens the sprite hierarchy inside
+    when drawing sprites. This can be customized with the
+    :any:`max_level` attribute, or by setting a ``no_perspective``
+    attribute to ``True`` on a given sprite instance---this will make
+    it so children of that sprites are not flattened out, and are
+    drawn in their intended order. """
+
     def __init__(self):
         super(PerspectiveGroup, self).__init__()
 
         self.max_level = 100
+        """ int: The maximum number of levels this class will traverse
+        when flattening the sprite hierarchy. So, if you set this to
+        1, it will reorder only the sprites directly within this
+        group, but none of their children.
+
+        By default, this is set to 100. """
+
         self.recursion_level = 0
 
     def draw_children(self):
+        """ You should not need to deal with this function yourself,
+        but it is useful to note---:any:`PerspectiveGroup`'s
+        implementation of draw_children reimplements most of
+        :any:`Sprite.draw_children` without reusing code. The two
+        method implementations may become the synchronized. If you
+        experience bugs in :any:`PerspectiveGroup` that do not occur
+        in normal sprites, this function is likely the cause. """
+
         # Just re-implementing most of draw_children. Involves little
         # more copy+paste than I'd like, but I can't think of a better
         # way to do it
@@ -1103,6 +1140,9 @@ class PerspectiveGroup(SpriteGroup):
                 draw_function()
 
     def get_subsprites(self, sprite):
+        # """ Internal use only. Returns a flattened list of a
+        # sprite's subsprites. """
+
         subsprites = sprite.subsprites[:]
         for item in sprite.subsprites:
             if ((hasattr(item, "no_perspective") 
@@ -1120,20 +1160,45 @@ class PerspectiveGroup(SpriteGroup):
         return subsprites
 
 class App(object):
+    """ A very simple object that wraps over scenes in order to let
+    you easily switch between multiple scenes. """
+
     def __init__(self, first_scene):
+        """
+        Args:
+            first_scene (:any:`Scene`): The scene that will be active
+                by default. The scene will be activated by
+                :any:`switch_scene`.
+        """
+
         self.switch_scene(first_scene)
 
     def switch_scene(self, scene):
+        """ Changes the active scene to another one. Also updates that
+        scene's :any:`Sprite.app` reference to refer to this object,
+        so you can switch to other scenes from that scene easily.
+
+        Args:
+            scene (:any:`Scene`): The scene to switch to.
+        """
+
         self.scene = scene
         scene.app = self
 
     def update(self):
+        """ An update function you can pass to :any:`sgl.run`. """
+
         self.scene.update()
 
     def draw(self):
+        """ A draw function you can pass to :any:`sgl.run`. """
+
         self.scene.draw()
     
 class Scene(Sprite):
+    """ A special kind of :any:`Sprite` designed to provide a few
+    additional functions useful in managing larger game levels. """
+
     def __init__(self):
         super(Scene, self).__init__()
 
@@ -1143,10 +1208,17 @@ class Scene(Sprite):
         )
 
         self.background_color = 0
+        """ number or tuple: The color that will be drawn behind
+        everything in this scene, in the usual SGL color format. By
+        default it is set to 0, black. """
 
         self.size = sgl.get_width(), sgl.get_height()
 
         self.camera = Camera()
+        """ :any:`Camera`: The camera of the scene, which determines
+        how nearly every object is transformed when rendered to the
+        screen. To move the camera around, you must use this
+        object. """
 
         self.scene = self
 
@@ -1156,12 +1228,34 @@ class Scene(Sprite):
         super(Scene, self).draw()
 
 class Viewport(Sprite):
+    """ A :any:`Sprite` that behaves identically to a :any:`Scene` in
+    most circumstances, except it is only rendered in the bounds of
+    its bounding box. 
+
+    Todo:
+        * Make scenes and viewports the same thing. Like, a scene
+          automatically become a viewport if its size does not fill
+          the screen, it will be drawn bigger if at a scale, etc. 
+        * When this happens, force all the examples to run in wiggling
+          (or at least bouncing) viewports. It should be possible to
+          embed scenes in other scenes arbitrarily. The ability to
+          make game anthologies, or browsable demo packages, like the
+          WxPython demo, should be nearly automatic. """
+
     def __init__(self):
         super(Viewport, self).__init__()
 
         self.camera = Camera()
+        """ :any:`Camera`: The camera of this viewport, which
+        determines how nearly every object is transformed when
+        rendered to the screen. To move the camera around, you must
+        use this object. """
 
         self.background_color = None
+        """ number or tuple: The color that will be drawn behind
+        everything in this viewport, in the usual SGL color format. By
+        default it is set to ``None``, which means the background will
+        be transparent. """
 
     def draw(self):
         if not self.visible: return
