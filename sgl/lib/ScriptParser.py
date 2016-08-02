@@ -1,30 +1,184 @@
+""" This module provides the functionality to parse SGLscript. It is
+mainly used behind the scenes to provide :any:`sgl.lib.Script` with
+the data it needs to operate, but you may need to interact with this
+module for real-time script manipulation. 
+
+An SGLscript file is formatted like follows:
+
+* First, there is a header section. The format of this section is
+  documented in :any:`ScriptParser.header`. (Please read that after
+  reading this, though---the documentation for that function assumes
+  some familiarity with the format of commands.)
+* Then, you must specify the beginning of a "label" by having a line
+  that begins with ``@``, with the rest of the line consisting of the
+  label name. Any line beginning with a ``@`` starts a new label.
+
+  .. warning:: This may be deprecated in favor of just using the
+      normal command syntax to define labels in the future. Even if
+      that happens, though, it will be possible to replicate the
+      current behavior through slightly more configurable macros.
+* Every line after that is interpreted as the body of a given
+  label. 
+
+In the body, two main rules apply:
+
+* Normal text is interpreted as dialogue that will get output to the
+  screen.
+* Anything with in square braces (``[`` and ``]``) is interpreted as a
+  command.
+
+Commands can consist of three components: 
+
+* All commands must have a *command name.* This determines what
+  function is used to handle this command when the script is executed.
+* Then, after this, they can have *positional arguments.* These, like
+  positional arguments in Python, or arguments that are specified by
+  order instead of by name.
+* Then, after (or instead of) positional arguments, commands can have
+  *keyword arguments.* These are arguments in which their name is
+  specified, and then their value. 
+
+There are two syntaxes of commands:
+
+* There are the *old-style commands,* which behave like HTML tags. In
+  this syntax, the command name is specified at the beginning, and is
+  ended by whitespace. After this whitespace, you can have whitespace
+  separated positional arguments, and then whitespace separated
+  keyword arguments. Keyword arguments are given in a ``key=value``
+  form, and any amount of whitespace is accepted before and after the
+  ``=``.
+
+  The type of commands look like this: ``[show-background "tree.png"
+  transition="fade-in" fade-time=5]``.
+
+  .. warning:: These types of commands will be deprecated as soon as
+     possible. Don't use them. I'm merely documenting them so the source
+     code makes more sense.
+
+* There are the *new-style commands,* or *pretty commands.* With this
+  syntax, command names are first, but are ended by a colon
+  (``:``). Because of this, command names can have spaces in
+  them. Then, positional arguments can be specified the same way as
+  with the old-style. Then, keyword arguments can be specified, but in
+  a ``key: value`` form. Thus, keyword arguments, like command names,
+  can also have spaces in their names. This creates some ambiguous
+  parsing situations, but these commands are much easier to read.
+
+  These types of commands look like this: ``[show background:
+  "tree.png" transition: "fade-in" fade time: 5]``.
+
+  With the sense of commands, command and keyword argument names are
+  case insensitive, and can handle arbitrary whitespace in the middle
+  of them. As long as you don't misspell them, you can mangle their
+  formatting quite a bit and they will parse correctly.
+
+  Todo:
+     * Okay, we might have to see about that "arbitrary"
+       whitespace... :|
+
+  .. warning:: These types of commands will be what SGLscript uses in
+      the future. Positional arguments may be deprecated in the
+      future, so please stick to using keyword arguments only if you
+      want to play it safe. This will also make your scripts easier to
+      read.
+
+Both styles use identical syntax for values for arguments:
+
+* If a value begins with a ``"`` or ``'``, it is a string. These
+  behave the same as Python strings---you must escape the other type
+  of quote with backslashes.
+
+* If a value begins with a digit or ``-``, it is a
+  number. Mathematical expressions are not currently allowed---you
+  must just input numbers.
+
+* Anything else is interpreted as a *keyword*---or a single word
+  string. This string must have no spaces is in it, and it will be
+  converted to lowercase during parsing. This is a shortcut for
+  specifying short string arguments without having to type quotes.
+
+  For example, the earlier example could be inputted as ``[show
+  background: tree.png transition: fade-in fade time: 5]`` with no
+  information being lost.
+
+  .. warning:: Quoteless string values may be deprecated in the
+      future. They can create some annoyingly ambiguous parsing situations
+      with pretty commands, like ``[show thing: cool transition:
+      "dissolve"]``. Is "cool" a positional argument or is the name of
+      the keyword argument "cool transition"?
+
+I cannot guarantee the behavior of anything left undescribed here. You
+have been warned.
+
+In addition, the parser supports some automatic manipulation of
+commands during parsing. This is documented more thoroughly in
+:any:`ParserSettings`.
+"""
+
 # To do:
 # Get line numbers working correctly
 
 def is_string(thing):
-    """ Returns whether `thing` is a string or not. """
-
     if 'basestring' not in globals():
         return isinstance(thing, str)
     else:
         return isinstance(thing, basestring)
 
 class ParserError(Exception):
+    """ This exception handles errors that happened while parsing a
+    script. """
+
     def __init__(self, text, line, char):
         self.text = text
+        """ string: A short description of the error. """
+
         self.line = line
+        """ int: The line the error occurred on. """
+
         self.char = char
+        """ int: The index of the character of the error happened
+        on. (Or the column number. It's not very consistent on
+        this.) 
+
+        Todo:
+            * Fix that. Either rename this to ``col`` for actually
+              make the :any:`Parser.error` function return the
+              character index. """
 
 class Label():
+    """ A class to represent labels in the script. """
+
     def __init__(self, name, body):
         self.name = name
+        """ The name of the label. """
+
         self.body = body
+        """ list: A list of the elements inside this level. Each item
+        should either be a string or :any:`Command` object."""
 
 class Command():
+    """ Represents a single command in a script. Converting this to a
+    string should yield a parsable command. 
+
+    Todo:
+        * Make that yield a parsable *pretty* command. """
+
     def __init__(self, name, pos_arg=[], key_arg={}):
         self.name = name
+        """ string: The name of the command. Always stored in the
+        old form---with dashes instead of spaces. So
+        "show background" will be "show-background".
+
+        Todo:
+            * Make it the other way around. Only known dependencies on
+              this feature---the :any:`ScriptParser.header` function
+              and command handling function in the Script module. """
+
         self.pos_arg = pos_arg
+        """ list: A list of the positional arguments. """
+
         self.key_arg = key_arg
+        """ dictionary: A dictionary of the keyword arguments. """
 
     def __str__(self):
         result = "[" + self.name
@@ -42,10 +196,30 @@ class Command():
         return result
 
 class Parser():
+    """ A base class for handling recursive descent parsers (possibly
+    badly).
+
+    You should definitely not use this class in your own programs, but
+    I need to document it for myself, so there. """
+
     def __init__(self, text=""):
+        """ 
+        Args:
+            text (string): If this argument is specified, it will call
+                :any:`load_text` with this text during initialization.
+        """
+
         if text: self.load_text(text)
 
     def load_text(self, text):
+        """ Loads text into the parser, and resets all the position counters. 
+
+        Args:
+            text (string): A string containing the text to
+                load. Should be able to deal fine with
+                Unicode. Should.
+        """
+
         self.text = text
         self.position = 0
         self.line = 0
@@ -73,7 +247,11 @@ class Parser():
 
     def eat(self, char):
         """ Eats a character, and if it's not what you
-        specify, complains. """
+        specify, raises an error with :any:`error`. 
+
+        Args:
+            char (string): The character the current character must be
+                equal to. """
 
         if self.char == char:
             self.next()
@@ -82,13 +260,15 @@ class Parser():
 
     @property
     def prev_char(self):
-        """ Returns the character before the current one. """
+        """ Read-only property returning the character before the
+        current one. """
 
         return self.text[self.position-1]
 
     @property
     def next_char(self):
-        """ Returns the character after the current one. """
+        """ Read-only property returning the character after the
+        current one. """
 
         if self.position+1 < len(self.text)-1 :
             return self.text[self.position+1]
@@ -106,7 +286,8 @@ class Parser():
         return self.prev_char == "\n"
 
     def at_content_beginning(self):
-        """ Returns if we're at the beginning of the content of the line. """
+        """ Returns if we're at the beginning of the content of the
+        line. (As in, past the whitespace.) """
 
         position = self.position-1
         line = ""
@@ -126,8 +307,20 @@ class Parser():
         return True
 
     def error(self, text):
-        """ Raises an error and shows the current position
-        and stuff. """
+        """ Raises an error and prints information about the state of
+        the parser.
+
+        Args:
+           text (string): A short description of the error.
+
+        Raises:
+           ParserError: Will always raise this. 
+
+        Todo:
+           * Maybe I should be using normal exceptions like a normal
+             person? Not really sure how to easily do that while
+             keeping track of the line and column position,
+             though. """
 
         end = self.position+1
         start = self.text.rfind("\n", 0, end)
@@ -140,11 +333,15 @@ class Parser():
         raise ParserError(text, self.line, self.col)
 
     def at_literal(self):
+        """ Returns whether we currently at the beginning of a string
+        or number literal. """
+
         return (self.char == "\"" or self.char == "'" or
                 self.char.isdigit() or self.char == "-")
 
     def literal(self):
-        """ Reads any arbitrary value. """
+        """ Reads a string or number literal, and returns the parsed
+        value. """
 
         if self.char == "\"" or self.char == "\'":
             item = self.string_literal()
@@ -155,8 +352,6 @@ class Parser():
         return item
 
     def string_literal(self):
-        """ Reads and converts a string literal"""
-
         result = ""
 
         starting = self.char
@@ -179,8 +374,6 @@ class Parser():
         return result
 
     def number_literal(self):
-        """ Reads and converts a number. """
-
         result = ""
         while not (self.char.isspace() or self.char == "]"):
             result += self.char
@@ -193,7 +386,10 @@ class Parser():
             return int(result)
 
     def symbol(self):
-        """ Reads a symbol name. """
+        """ Reads a symbol name. 
+
+        Todo:
+           Has a bunch of hardcoded values for SGLscript. Factor out."""
 
         if self.char.isdigit() or self.char == "-":
             self.error("symbols cannot begin with digits or -s")
@@ -207,7 +403,10 @@ class Parser():
         return result.lower()
 
     def whitespace(self, allow_newline=True):
-        """ Eats all whitespace. """
+        """ Keeps advancing the cursor until reaching non-whitespace characters.
+
+        Args:
+            allow_newline (bool): Whether to eat newlines as well. """
 
         items = [" ", "\t"]
         if allow_newline:
@@ -225,7 +424,9 @@ class Parser():
             self.error("expected newline")
 
     def line_empty(self):
-        """ Peeks ahead to see if the current line is empty or not. """
+        """ Peeks ahead to see if the current line has any
+        non-whitespace content or not. """
+
         position = self.position
         line = ""
 
@@ -240,21 +441,52 @@ class Parser():
         return line == "" or line.startswith(";;")
 
 class ParserSettings(object):
-    # A dictionary of macros and replacement text
+    """ An object for holding settings on how the SGLscript parser
+    behaves that the user is meant to be able to change. """
+
     macros = {}
+    """ dictionary: A dictionary of macros and their replacement
+    text. By default it is empty. 
 
-    # Whether whitespace between commands in the middle of a paragraph
-    # is reproduced. By default, it isn't, which can be handy, but
-    # unexpected, since that isn't really how HTML works.
+    Macros are literally just text replacements. Whenever the parser
+    encounters a macro, it will replace it with the replacement
+    text. This replacement text can contain *anything,* including
+    command invocations and other macros. The parser will attempt to
+    prevent obvious recursive macros, but you can potentially crash
+    the parser by defining macros that reference each other
+    infinitely. 
+
+    Todo:
+        * More configurable macros, and different types. Like, have
+          command alias macros, line macros (so that lines beginning
+          and ending with certain characters can be handled
+          differently, and that lines in all caps can be handled
+          differently, enabling you to use Fountain-like formatting in
+          your scripts), and so on.
+        * It's probably a bad idea to allow regular expressions for
+          these, right? """
+
     use_command_whitespace = False
+    """ bool: Whether whitespace between commands in the middle of a paragraph
+    is reproduced. By default, it isn't, which can be useful, but
+    unexpected, since that isn't how most markup languages work. """
 
-    # Whether commands with no keyword arguments are interpreted as
-    # pretty commands ot not
     default_pretty = False
+    """ bool: Whether ambiguous commands (such as ``[wait a bit]``)
+    are interpreted as normal commands (the command "wait" with the
+    positional arguments "a" and "bit") or pretty commands (the
+    command named "wait a bit"). If True, everything will be assumed
+    to be a pretty command. Is False by default. """
 
     # Controls paragraph command generation
     add_paragraphs = True
+    """ bool: Whether to automatically add "paragraph" commands after
+    paragraphs (one or more blank lines in between blocks of
+    text). By default is True. """
+
     paragraph_name = "paragraph"
+    """ string: If :any:`add_paragraphs` is True, the command name to
+    use for these paragraph commands. By default is "paragraph." """
 
 class MacroError(Exception):
     def __init__(self, text):
@@ -293,9 +525,14 @@ class BodyParser(Parser):
                 self.macro_beginnings.append(begin)
 
     def at_comment(self):
+        """ Returns whether a comment is beginning of the current
+        spot. """
+
         return self.char == ";" and self.next_char == ";"
 
     def parse(self):
+        """ Main function for parsing scripts. """
+
         result = []
         last_paragraph_blank = True
 
@@ -447,7 +684,9 @@ class BodyParser(Parser):
         return result
 
     def has_colon(self):
-        """  """
+        """ Returns whether there is a colon inside a given
+        command. Used to test in advance if a command is a pretty
+        command. """
 
         position = self.position
         line = ""
@@ -468,7 +707,8 @@ class BodyParser(Parser):
         return False
 
     def pretty_symbol(self):
-        """ """
+        """ Parses a symbol in the pretty command syntax---nearly any
+        arbitrary set of characters followed by a colon. """
 
         if self.char.isdigit() or self.char == "-":
             self.error("symbols cannot begin with digits or -s")
@@ -489,6 +729,8 @@ class BodyParser(Parser):
         return result.lower().replace(" ", "-")
         
     def command(self):
+        """ Parses a command and returns a :any:`Command` object. """
+
         self.eat("[")
 
         # Allow whitespace at the beginning for some reason
@@ -510,6 +752,10 @@ class BodyParser(Parser):
         return Command(name, pos_args, key_args)
 
     def arguments(self, pretty=False):
+        """ Parses and returns the arguments of a command. ``pretty``
+        determines it does this assuming this is a pretty command or
+        not. """
+
         pos_args = []
         key_args = {}
 
@@ -631,6 +877,10 @@ class BodyParser(Parser):
         return pos_args, key_args
 
     def prose(self):
+        """ Parses and returns plain text, making sure to return
+        control to other parts of the program when we reach a other
+        script elements. """
+
         result = ""
 
         # While we are still even in the document
@@ -675,7 +925,9 @@ class BodyParser(Parser):
         return result
 
     def read_to_end_of_line(self):
-        # Exists for no other reason than to handle comments :|
+        """ Eats and returns everything until the end of the
+        line. Used for comments. """
+
         result = ""
         while self.position_valid() and self.char not in ["\n"]:
             result += self.char
@@ -687,12 +939,43 @@ class HeaderError(Exception):
         self.text = text
 
 class ScriptParser(Parser):
+    """ The object you'll be interacting with the most if you use this
+    module. This is what actually lets you take a string, parse it,
+    and get back the proper objects. 
+
+    Todo:
+        * Trash a good portion of BodyParser.
+        * Un-hardcode the concept of labels. Have labels just be
+          commands whose position is tracked so they can be quickly
+          accessed. 
+    """
+
     settings = ParserSettings()
+    """ :any:`ParserSettings`: The object holding this parser's
+    settings. Passed by reference to the body parses this object uses.
+
+    By default is a default empty settings object. This is initialized
+    in the class header. That's why the documentation says nonsense
+    about an object reference. """
 
     def reset_settings(self):
+        """ Resets all parser settings to their default values. """
+
         self.settings = ParserSettings()
 
     def parse(self):
+        """ Parses a script loaded by :any:`load_text` and returns a
+        dictionary of labels.
+
+        Returns:
+            dictionary: A dictionary in which the keys are the name of
+                a given level, and the value is the corresponding
+                :any:`Label` object.
+
+        Todo:
+            * :any:`Label` objects also contains the name of the
+              label. There has to be a less dumb way to do this. """
+
         # Read header
         self.whitespace()
         self.header()
@@ -710,7 +993,31 @@ class ScriptParser(Parser):
         return result
 
     def header(self):
-        # Retrieve and parse all text before the first label
+        """ Parses special commands before the first label. You should
+        not be calling this yourself, but the header is strange enough
+        to warrant additional documentation.
+
+        Currently, you can only use two commands here: 
+
+        * ``define macro``: This takes two positional arguments. The
+          first one is the original text, the second one is what to
+          replace that text with. 
+        * ``use pretty commands``: This determines whether to parse
+          all commands as pretty commands or not. It only takes one
+          positional argument, which must be the string or keyword
+          "yes" to activate this. 
+
+        If you attempt to use any other commands, or normal body text
+        here, it will raise a HeaderError. Comments and all permutations of
+        whitespace are fine.
+
+        You can potentially raise a MacroError by defining macros that
+        begin with characters that conflict with SGLscript (currently
+        ``\\``, ``[``, and ``@``). Don't do this. 
+
+        Both of those types of exceptions only have one parameter,
+        ``text``, so I'm not documenting them in detail. """
+
         text = self.body()
         if not text: return
 
@@ -720,11 +1027,9 @@ class ScriptParser(Parser):
             # Only allow commands
             if isinstance(item, Command):
 
-                # Handle define macro command
                 if item.name in ["defmacro", "define-macro"] and len(item.pos_arg) == 2:
                     self.settings.macros[item.pos_arg[0]] = item.pos_arg[1]
 
-                # Handle define macro command
                 elif item.name in ["use-pretty-commands"] and len(item.pos_arg) == 1:
                     self.settings.default_pretty = (item.pos_arg[0] == "yes")
 
@@ -741,6 +1046,8 @@ class ScriptParser(Parser):
                 raise HeaderError("no text blocks allowed in the header")
 
     def label(self):
+        # """ Parses a label and returns a label object. """
+
         # Retrieve label name
         self.eat("@")
         name = self.symbol()
@@ -757,7 +1064,7 @@ class ScriptParser(Parser):
         return Label(name, body)
 
     def body(self):
-        # Collect stuff until we reach a line starting with @
+        # """ Collect stuff until we reach a line starting with @ """
         result = ""
 
         while (not (self.char == "@" and self.at_line_beginning()) 

@@ -17,3 +17,18 @@ sgl.lib.Sprite
 .. automodule:: sgl.lib.Sprite
                 :members:
 
+sgl.lib.Collision
+^^^^^^^^^^^^^^^^^
+.. automodule:: sgl.lib.Collision
+                :members:
+
+sgl.lib.Layout
+^^^^^^^^^^^^^^
+.. automodule:: sgl.lib.Layout
+                :members:
+
+sgl.lib.ScriptParser
+^^^^^^^^^^^^^^^^^^^^
+.. automodule:: sgl.lib.ScriptParser
+                :members:
+

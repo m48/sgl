@@ -1,3 +1,9 @@
+""" This module provides some functions for working with bounding box
+based collisions. It is fairly basic, and not very optimized, but for
+most use cases, it works out of the box and does not let objects
+randomly get stuck in and fall through each other, something a
+disturbing amount of game engines lack. """
+
 import sgl
 from sgl.lib.Sprite import *
 from sgl.lib.Rect import Rect
@@ -6,6 +12,14 @@ import inspect
 import math
 
 class CollisionChecker(object):
+    """ An object that checks whether sprites are overlapping every
+    frame, and takes user-specified action as a result.
+
+    This is mostly used by the backend of
+    :any:`sgl.lib.Collision`. From an end user's perspective, this
+    class will mostly be used to stop and resume collision
+    checking. """
+
     def __init__(self, object1, object2, callback):
         self.object1 = object1
         self.object2 = object2
@@ -23,12 +37,20 @@ class CollisionChecker(object):
         self.active = True
 
     def stop(self):
+        """ Stops a collision checker entirely by deleting the
+        object. """
+
         self.to_be_deleted = True
 
     def pause(self):
+        """ Temporarily pauses this collision checker, without
+        deleting it. """
+
         self.active = False
 
     def resume(self):
+        """ Resumes a previously paused collision checker. """
+
         self.active = True
 
     def do_callback(self, this, other):
@@ -70,6 +92,10 @@ class CollisionChecker(object):
         return False
 
 class SlidingCollisionChecker(CollisionChecker):
+    """ Identical to a normal :any:`CollisionChecker`, except that its
+    update function provides additional logic to move objects outside
+    of each other. """
+
     def do_callback(self, direction=[]):
         if self.callback_args == 0:
             self.callback()
@@ -102,11 +128,13 @@ class SlidingCollisionChecker(CollisionChecker):
         self.object1.position = px, py
 
         # Slide the object towards its destination x value
+
         x_colliding = False
 
         # Loop only runs if the object is moving in that direction
-        # (I'm using dx as the condition here just to avoid writing an
-        #  extra if statement to surround the loop :| )
+        # (I'm just using dx as the condition to make sure the
+        # object's moving in that direction before looping. I could
+        # use a surrounding if statement for that, I guess :| )
         while dx:
             self.object1.x += dx
             x_colliding = self.check_collision()
@@ -151,6 +179,7 @@ class SlidingCollisionChecker(CollisionChecker):
         if y_colliding and dy > 0:
             self.object1.y = math.ceil(self.object1.y)
 
+        # Handle calling the callback.
         if x_colliding or y_colliding:
             if self.callback_args == 0:
                 self.do_callback()
@@ -189,12 +218,111 @@ class CollisionManager(object):
 manager = CollisionManager()
 
 def add(object1, object2, callback):
+    """ Creates a basic collision checker, which will call a callback
+    on every frame two objects overlap.
+
+    Will use a sprite's visible rectangle for collisions, unless a
+    Sprite has a custom :any:`Sprite.collision_rect` defined.
+
+    Args:
+        object1 (:any:`Sprite`): The first object to
+             test. This must be a single sprite---subsprites will not
+             be tested for collision.
+        object2 (:any:`Sprite`): The second object to
+             test. This can be any kind of sprite, and subsprites will
+             be tested for collision.
+        callback (function): The function to call when the objects
+             overlap. This function will have different information
+             passed to it depending on how many arguments it accepts.
+
+             * If it accepts no arguments, nothing special will be
+               passed to it.
+             * If it accepts 1 argument, it will be passed a reference
+               to the subsprite of ``object2`` that ``object1``
+               collided with on that frame.
+             * If it accepts 2 arguments, it will be passed a
+               reference to ``object1``, and then the subsprite of
+               ``object2`` that ``object1`` collided with on that
+               frame.
+             * If it accepts 3 arguments, it will be passed all of the
+               above, and then a :any:`sgl.lib.Rect.Rect` representing
+               the intersected area between the two sprites.
+
+    Returns:
+        :any:`CollisionChecker`: An object that can
+             be used to pause or stop this collision checking if
+             necessary.
+"""
+
     return manager.add(object1, object2, callback)
 
 def add_sliding(object1, object2, callback=None):
+    """ Creates a sliding collision checker, which will prevent
+    ``object1`` from going inside any of the sprites of ``object2``.
+    It is called a "sliding" collision checker because if an object is
+    moving diagonally, it will continue to move in the free direction
+    even if it collides against a wall. Because the collision
+    algorithms are bounding box based, though, diagonal obstacles are
+    not supported.
+
+    The sliding collision algorithm checks every pixel position
+    between ``object1``'s position on the current and previous frame
+    to check collision, so object should not be of the slide through
+    each other when they are moving fast or if the frame rate gets
+    low. A consequence of this, however, is that this means manual
+    position updates are subject to collision checking as well--if you
+    want to teleport an object through a wall, you must temporarily
+    turn off sliding collision checking for that to work.
+
+    Because of this, it's recommended you always save a reference to
+    the :any:`SlidingCollisionChecker` object this function returns.
+
+    Will use a sprite's visible rectangle for collisions, unless a
+    Sprite has a custom :any:`Sprite.collision_rect` defined.
+
+    Args:
+        object1 (:any:`Sprite`): The first object to
+             test. This must be a single sprite---subsprites will not
+             be tested for collision.
+        object2 (:any:`Sprite`): The second object to
+             test. This can be any kind of sprite, and subsprites will
+             be tested for collision.
+        callback (function): The function to call when the objects
+             overlap. This function will have different information
+             passed to it depending on how many arguments it accepts.
+
+             * If it accepts no arguments, nothing special will be
+               passed to it.
+             * If it accepts 1 argument, it will be passed a list of
+               strings that can contain various permutations of
+               ``"left"``, ``"right"``, ``"top"``, and
+               ``"bottom"``. The strings present in this list will
+               tell you on what sides ``object1`` was hit before its
+               position was corrected by the collision checker.
+
+    Returns:
+        :any:`SlidingCollisionChecker`: An object that can
+             be used to pause or stop this collision checking if
+             necessary.
+    """
+
     return manager.add_sliding(object1, object2, callback)
 
 def update():
+    """ Must be called every frame for any of the collision checkers
+    to work. 
+
+    Todo:
+        * It might be handy to have this and the other continuously
+          executing libraries (tween, time...) automatically inject
+          themselves into the SGL event loop instead of making the
+          user manually call their update functions every
+          frame. Currently it is slightly annoying that one has to
+          plan out a way to make sure these update functions are
+          called *exactly* once every frame in their entire
+          program. I'm not sure if handling this automatically is too
+          "magic," though... """
+
     manager.update()
 
 if __name__ == "__main__":
